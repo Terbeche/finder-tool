@@ -358,37 +358,46 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error Opening Folder", str(e))
     
     def delete_selected_files(self):
-        """Delete selected files"""
+        """Move selected files to trash"""
         selected_rows = set(index.row() for index in self.results_table.selectedIndexes())
         if not selected_rows:
             return
             
-        # Confirm deletion
+        # Confirm move to trash
         confirm = QMessageBox.warning(
-            self, "Confirm Deletion", 
-            f"Are you sure you want to delete {len(selected_rows)} file(s)?\nThis cannot be undone!",
+            self, "Confirm Move to Trash", 
+            f"Are you sure you want to move {len(selected_rows)} file(s) to trash?",
             QMessageBox.Yes | QMessageBox.No
         )
         
         if confirm == QMessageBox.Yes:
-            # Delete files
-            deleted_count = 0
+            # Move files to trash
+            moved_count = 0
             for row in sorted(selected_rows, reverse=True):
                 file_path = self.files[row].path
                 try:
-                    os.remove(file_path)
+                    import send2trash
+                    send2trash.send2trash(file_path)
                     self.results_table.removeRow(row)
                     self.files.pop(row)
-                    deleted_count += 1
+                    moved_count += 1
+                except ImportError:
+                    QMessageBox.warning(
+                        self, "Missing Package", 
+                        "The send2trash package is required for this feature.\n"
+                        "Please install it with: pip install send2trash"
+                    )
+                    break
                 except Exception as e:
                     QMessageBox.warning(
-                        self, "Error Deleting File", 
-                        f"Could not delete {file_path}:\n{str(e)}"
+                        self, "Error Moving File to Trash", 
+                        f"Could not move {file_path} to trash:\n{str(e)}"
                     )
             
             # Update status
             self.file_count_label.setText(f"{len(self.files)} files found")
-            QMessageBox.information(self, "Deletion Complete", f"Successfully deleted {deleted_count} file(s).")
+            if moved_count > 0:
+                QMessageBox.information(self, "Operation Complete", f"Successfully moved {moved_count} file(s) to trash.")
     
     def rename_file(self):
         """Rename selected file"""
