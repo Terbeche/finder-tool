@@ -57,10 +57,10 @@ class SettingsDialog(QDialog):
         # Default scan settings
         scan_group = QGroupBox("Default Scan Settings")
         scan_layout = QFormLayout(scan_group)
-        
+
         self.default_min_size = QSpinBox()
         self.default_min_size.setRange(0, 10000)
-        self.default_min_size.setValue(1)
+        self.default_min_size.setValue(0)
         self.default_min_size.setSuffix(" MB")
         scan_layout.addRow("Default Minimum Size:", self.default_min_size)
         

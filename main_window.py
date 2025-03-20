@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         # Size filters
         self.min_size = QSpinBox()
         self.min_size.setRange(0, 10000)
-        self.min_size.setValue(1)
+        self.min_size.setValue(0)
         self.min_size.setSuffix(" MB")
 
         self.max_size = QSpinBox()
