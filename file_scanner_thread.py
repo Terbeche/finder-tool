@@ -21,6 +21,8 @@ class FileScannerThread(QThread):
         self.scan_depth = scan_depth
         self.files = []
         self.stop_requested = False
+        self.pause_requested = False
+        self.paused = False
     
     def run(self):
         self.scan_directory(self.directory)
@@ -29,6 +31,13 @@ class FileScannerThread(QThread):
     
     def stop(self):
         self.stop_requested = True
+
+    def pause(self):
+        self.pause_requested = True
+    
+    def resume(self):
+        self.pause_requested = False
+        self.paused = False
     
     def scan_directory(self, directory, current_depth=0):
         """Recursively scan directory for files matching criteria"""
@@ -48,7 +57,15 @@ class FileScannerThread(QThread):
             for item in items:
                 if self.stop_requested:
                     return
-                    
+                
+                # Handle pause if requested
+                while self.pause_requested and not self.stop_requested:
+                    if not self.paused:
+                        self.paused = True
+                    self.msleep(100)  # Sleep for 100ms to avoid CPU spin
+                
+                self.paused = False
+                
                 processed += 1
                 self.update_progress.emit(processed, total_items)
                 

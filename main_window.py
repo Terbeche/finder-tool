@@ -98,6 +98,18 @@ class MainWindow(QMainWindow):
         self.search_button.clicked.connect(self.start_search)
         search_layout.addWidget(self.search_button)
         
+        # Add pause/resume button
+        self.pause_button = QPushButton("Pause")
+        self.pause_button.clicked.connect(self.toggle_pause_scan)
+        self.pause_button.setEnabled(False)
+        search_layout.addWidget(self.pause_button)
+        
+        # Add stop button
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.clicked.connect(self.stop_scan)
+        self.stop_button.setEnabled(False)
+        search_layout.addWidget(self.stop_button)
+        
         main_layout.addWidget(search_group)
         
         # Progress bar
@@ -212,6 +224,8 @@ class MainWindow(QMainWindow):
         
         # Update UI
         self.search_button.setEnabled(False)
+        self.pause_button.setEnabled(True)
+        self.stop_button.setEnabled(True)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         
@@ -283,6 +297,8 @@ class MainWindow(QMainWindow):
     def scan_complete(self, files):
         """Handle scan completion"""
         self.search_button.setEnabled(True)
+        self.pause_button.setEnabled(False)
+        self.stop_button.setEnabled(False)
         self.progress_bar.setVisible(False)
         self.statusBar().showMessage(f"Scan complete. Found {len(files)} files.")
         
@@ -365,39 +381,52 @@ class MainWindow(QMainWindow):
             
         # Confirm move to trash
         confirm = QMessageBox.warning(
-            self, "Confirm Move to Trash", 
+            self, "Move to Trash", 
             f"Are you sure you want to move {len(selected_rows)} file(s) to trash?",
             QMessageBox.Yes | QMessageBox.No
         )
         
         if confirm == QMessageBox.Yes:
             # Move files to trash
-            moved_count = 0
+            try:
+                # First try to import send2trash
+                import send2trash
+                has_send2trash = True
+            except ImportError:
+                has_send2trash = False
+                response = QMessageBox.question(
+                    self, "Package Not Found", 
+                    "The send2trash package is required for safely moving files to trash.\n"
+                    "Would you like to permanently delete the files instead?\n\n"
+                    "To use the trash feature, install send2trash: pip install send2trash",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if response != QMessageBox.Yes:
+                    return
+            
+            # Delete/trash files
+            processed_count = 0
             for row in sorted(selected_rows, reverse=True):
                 file_path = self.files[row].path
                 try:
-                    import send2trash
-                    send2trash.send2trash(file_path)
+                    if has_send2trash:
+                        send2trash.send2trash(file_path)
+                    else:
+                        os.remove(file_path)
+                        
                     self.results_table.removeRow(row)
                     self.files.pop(row)
-                    moved_count += 1
-                except ImportError:
-                    QMessageBox.warning(
-                        self, "Missing Package", 
-                        "The send2trash package is required for this feature.\n"
-                        "Please install it with: pip install send2trash"
-                    )
-                    break
+                    processed_count += 1
                 except Exception as e:
                     QMessageBox.warning(
-                        self, "Error Moving File to Trash", 
-                        f"Could not move {file_path} to trash:\n{str(e)}"
+                        self, "Error Processing File", 
+                        f"Could not process {file_path}:\n{str(e)}"
                     )
             
             # Update status
             self.file_count_label.setText(f"{len(self.files)} files found")
-            if moved_count > 0:
-                QMessageBox.information(self, "Operation Complete", f"Successfully moved {moved_count} file(s) to trash.")
+            action_word = "moved to trash" if has_send2trash else "deleted"
+            QMessageBox.information(self, "Operation Complete", f"Successfully {action_word} {processed_count} file(s).")
     
     def rename_file(self):
         """Rename selected file"""
@@ -509,4 +538,36 @@ class MainWindow(QMainWindow):
         
         # Show menu at cursor position
         menu.exec_(self.results_table.viewport().mapToGlobal(position))
+    
+    def toggle_pause_scan(self):
+        """Pause or resume the file scan"""
+        if not self.scanner_thread or not self.scanner_thread.isRunning():
+            return
+            
+        if self.scanner_thread.pause_requested:
+            # Resume scan
+            self.scanner_thread.resume()
+            self.pause_button.setText("Pause")
+            self.statusBar().showMessage("Scan resumed...")
+        else:
+            # Pause scan
+            self.scanner_thread.pause()
+            self.pause_button.setText("Resume")
+            self.statusBar().showMessage("Scan paused. Click Resume to continue.")
+
+    def stop_scan(self):
+        """Stop the file scan"""
+        if not self.scanner_thread or not self.scanner_thread.isRunning():
+            return
+            
+        self.scanner_thread.stop()
+        self.statusBar().showMessage("Stopping scan...")
+        self.scanner_thread.wait(1000)  # Wait up to 1 second for thread to finish
+        
+        self.search_button.setEnabled(True)
+        self.pause_button.setEnabled(False)
+        self.stop_button.setEnabled(False)
+        self.pause_button.setText("Pause")
+        self.progress_bar.setVisible(False)
+        self.statusBar().showMessage("Scan stopped by user.")
 
