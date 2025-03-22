@@ -166,6 +166,10 @@ class MainWindow(QMainWindow):
         
         self.rename_action = QAction("Rename File", self)
         self.rename_action.triggered.connect(self.rename_file)
+        
+        # Help menu actions
+        self.about_action = QAction("About", self)
+        self.about_action.triggered.connect(self.show_about)
     
     def create_menu(self):
         """Create application menu"""
@@ -185,6 +189,10 @@ class MainWindow(QMainWindow):
         actions_menu = menu_bar.addMenu("Actions")
         actions_menu.addAction(self.delete_action)
         actions_menu.addAction(self.rename_action)
+        
+        # Help menu
+        help_menu = menu_bar.addMenu("Help")
+        help_menu.addAction(self.about_action)
     
     def browse_directory(self):
         """Open directory browser dialog"""
@@ -523,6 +531,8 @@ class MainWindow(QMainWindow):
             "<h3>Smart File Manager</h3>"
             "<p>A powerful tool for finding and organizing files.</p>"
             "<p>Version 1.0</p>"
+            "<p>© 2025 Mostefa Terbeche</p>"
+            "<p>For more information, visit <a href='https://www.mostefaterbeche.me/'>our website</a>.</p>"
         )
     
     def show_context_menu(self, position):
