@@ -9,6 +9,10 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.categories = categories.copy()  # Work with a copy
         self.setWindowTitle("Settings")
+        
+        # Get current settings from parent (MainWindow)
+        self.main_window = parent
+        self.app_settings = self.main_window.app_settings.copy() if hasattr(self.main_window, 'app_settings') else {}
         self.setup_ui()
     
     def setup_ui(self):
@@ -48,10 +52,9 @@ class SettingsDialog(QDialog):
         general_widget = QWidget()
         general_layout = QVBoxLayout(general_widget)
         
-        # TODO => add functionality to the general settings
         # Auto-discover extensions
         self.auto_discover = QCheckBox("Auto-discover and suggest new file extensions")
-        self.auto_discover.setChecked(True)
+        self.auto_discover.setChecked(self.app_settings.get("auto_discover", True))
         general_layout.addWidget(self.auto_discover)
         
         # Default scan settings
@@ -60,13 +63,13 @@ class SettingsDialog(QDialog):
 
         self.default_min_size = QSpinBox()
         self.default_min_size.setRange(0, 10000)
-        self.default_min_size.setValue(0)
+        self.default_min_size.setValue(self.app_settings.get("default_min_size", 0))
         self.default_min_size.setSuffix(" MB")
         scan_layout.addRow("Default Minimum Size:", self.default_min_size)
         
         self.default_max_depth = QSpinBox()
         self.default_max_depth.setRange(1, 100)
-        self.default_max_depth.setValue(15)
+        self.default_max_depth.setValue(self.app_settings.get("default_max_depth", 15))
         scan_layout.addRow("Default Maximum Depth:", self.default_max_depth)
         
         general_layout.addWidget(scan_group)
@@ -140,4 +143,38 @@ class SettingsDialog(QDialog):
         if confirm == QMessageBox.Yes:
             self.categories.pop(row)
             self.update_categories_table()
+    
+    def accept(self):
+        """Handle dialog acceptance"""
+        # Update settings before closing
+        self.update_settings()
+        # Call parent's accept to close the dialog
+        super().accept()
+    
+    def update_settings(self):
+        """Update settings after dialog is closed"""
+        try:
+            print("SettingsDialog: Starting settings update")
+            new_settings = {
+                "auto_discover": self.auto_discover.isChecked(),
+                "default_min_size": self.default_min_size.value(),
+                "default_max_depth": self.default_max_depth.value(),
+                "last_directory": self.main_window.current_directory
+            }
+            print("SettingsDialog: New settings prepared:", new_settings)
+            
+            if hasattr(self.main_window, 'update_settings'):
+                print("SettingsDialog: Calling MainWindow.update_settings")
+                self.main_window.update_settings(new_settings, self.categories)
+                print("SettingsDialog: Settings update completed")
+            else:
+                print("Error: MainWindow does not have update_settings method")
+                
+        except Exception as e:
+            print(f"Error updating settings: {e}")
+            QMessageBox.warning(
+                self,
+                "Settings Error",
+                f"Failed to update settings: {str(e)}"
+            )
 

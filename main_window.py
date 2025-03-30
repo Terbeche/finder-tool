@@ -8,7 +8,7 @@ import platform
 from PySide6.QtWidgets import (
     QMainWindow, QFileDialog, QTableWidget, 
     QTableWidgetItem, QHeaderView, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLabel, QLineEdit, QComboBox, QSpinBox, QCheckBox,
+    QPushButton, QLabel, QLineEdit, QComboBox, QSpinBox,
     QMessageBox, QMenu, QProgressBar, QGroupBox, QAbstractItemView
 )
 from PySide6.QtCore import Qt
@@ -16,6 +16,7 @@ from PySide6.QtGui import QAction, QColor
 from file_category import FileCategory
 from file_scanner_thread import FileScannerThread
 from settings_dialog import SettingsDialog
+from config_manager import ConfigManager
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -33,9 +34,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Smart File Manager")
         self.resize(1000, 700)
         
-        # Initialize settings
-        self.categories = DEFAULT_CATEGORIES.copy()
-        self.current_directory = str(Path.home())
+        # Initialize config manager
+        self.config_manager = ConfigManager()
+        
+        # Load settings
+        self.app_settings = self.config_manager.load_settings()
+        # Initialize settings with loaded values
+        self.categories = self.config_manager.load_categories(DEFAULT_CATEGORIES)
+        self.current_directory = self.app_settings.get("last_directory", str(Path.home()))
         self.files = []
         self.scanner_thread = None
         
@@ -72,7 +78,7 @@ class MainWindow(QMainWindow):
         # Size filters
         self.min_size = QSpinBox()
         self.min_size.setRange(0, 10000)
-        self.min_size.setValue(0)
+        self.min_size.setValue(self.app_settings.get("default_min_size", 0))
         self.min_size.setSuffix(" MB")
 
         self.max_size = QSpinBox()
@@ -89,7 +95,7 @@ class MainWindow(QMainWindow):
         # Depth setting
         self.max_depth = QSpinBox()
         self.max_depth.setRange(1, 100)
-        self.max_depth.setValue(15)
+        self.max_depth.setValue(self.app_settings.get("default_max_depth", 15))
         search_layout.addWidget(QLabel("Max Depth:"))
         search_layout.addWidget(self.max_depth)
         
@@ -202,6 +208,10 @@ class MainWindow(QMainWindow):
         if directory:
             self.current_directory = directory
             self.path_edit.setText(directory)
+            
+            # Save the current directory in settings
+            self.app_settings["last_directory"] = directory
+            self.config_manager.save_settings(self.app_settings)
     
     def start_search(self):
         """Start file search operation"""
@@ -474,6 +484,8 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(self.categories, self)
         if dialog.exec():
             self.categories = dialog.categories
+            # Save categories to config file
+            self.config_manager.save_categories(self.categories)
             # Refresh the view if needed
             if self.files:
                 self.refresh_results()
@@ -582,3 +594,39 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
         self.statusBar().showMessage("Scan stopped by user.")
 
+    def update_settings(self, new_settings, new_categories=None):
+        """Update application settings and categories"""
+        try:
+            # Update settings
+            self.app_settings.update(new_settings)
+            print("Settings before save:", self.app_settings)
+            
+            # Save settings to config file immediately
+            self.config_manager.save_settings(self.app_settings)
+            
+            # Update categories if provided
+            if new_categories is not None:
+                self.categories = new_categories.copy()
+                self.config_manager.save_categories(self.categories)
+                
+                # Update category combo box
+                self.category_combo.clear()
+                self.category_combo.addItem("All Files")
+                for category in self.categories:
+                    self.category_combo.addItem(category.name)
+
+        except Exception as e:
+            print(f"Error in update_settings: {e}")
+            QMessageBox.warning(
+                self,
+                "Settings Error",
+                f"Failed to update settings: {str(e)}"
+            )
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        # Save current settings before closing
+        self.app_settings["last_directory"] = self.current_directory
+        self.config_manager.save_settings(self.app_settings)
+        print("Settings saved before closing.")
+        super().closeEvent(event)
