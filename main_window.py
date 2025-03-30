@@ -311,7 +311,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Scan complete. Found {len(files)} files.")
         
         # Check for new file extensions
-        self.check_for_new_extensions()
+        if self.app_settings.get("auto_discover", True) and self.files:
+            self.check_for_new_extensions()
     
     def check_for_new_extensions(self):
         """Check for file extensions not in any category"""
