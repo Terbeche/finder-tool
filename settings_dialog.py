@@ -1,4 +1,7 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QTabWidget, QWidget, QHBoxLayout, QPushButton, QCheckBox, QGroupBox, QFormLayout, QSpinBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox, QMessageBox, QFileDialog
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QWidget, QHBoxLayout,
+                              QPushButton, QCheckBox, QGroupBox, QFormLayout, QSpinBox,
+                              QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox,
+                              QMessageBox)
 from PySide6.QtGui import QColor, QFont
 
 from category_dialog import CategoryDialog
@@ -10,7 +13,7 @@ class SettingsDialog(QDialog):
         self.categories = categories.copy()  # Work with a copy
         self.setWindowTitle("Settings")
         
-        # Get current settings from parent (MainWindow)
+        # Reference to main window
         self.main_window = parent
         self.app_settings = self.main_window.app_settings.copy() if hasattr(self.main_window, 'app_settings') else {}
         self.setup_ui()
@@ -48,7 +51,7 @@ class SettingsDialog(QDialog):
         
         tab_widget.addTab(categories_widget, "File Categories")
         
-        # General settings tab (placeholder for now)
+        # General settings tab
         general_widget = QWidget()
         general_layout = QVBoxLayout(general_widget)
         
@@ -107,14 +110,15 @@ class SettingsDialog(QDialog):
             self.categories_table.setItem(row, 2, color_item)
     
     def add_category(self):
-        """Add a new category"""
+        """Add a new category - using the proper dialog pattern"""
         dialog = CategoryDialog(parent=self)
         if dialog.exec():
-            self.categories.append(dialog.category)
+            new_category = dialog.get_category()  # Get data after dialog is closed
+            self.categories.append(new_category)
             self.update_categories_table()
     
     def edit_category(self):
-        """Edit selected category"""
+        """Edit selected category - using the proper dialog pattern"""
         selected_rows = self.categories_table.selectedIndexes()
         if not selected_rows:
             QMessageBox.information(self, "No Selection", "Please select a category to edit.")
@@ -123,7 +127,8 @@ class SettingsDialog(QDialog):
         row = selected_rows[0].row()
         dialog = CategoryDialog(self.categories[row], parent=self)
         if dialog.exec():
-            self.categories[row] = dialog.category
+            new_category = dialog.get_category()  # Get data after dialog is closed
+            self.categories[row] = new_category
             self.update_categories_table()
     
     def remove_category(self):
@@ -146,35 +151,16 @@ class SettingsDialog(QDialog):
     
     def accept(self):
         """Handle dialog acceptance"""
-        # Update settings before closing
-        self.update_settings()
-        # Call parent's accept to close the dialog
+        # Disable the OK button to prevent multiple clicks
+        self.findChild(QDialogButtonBox).button(QDialogButtonBox.Ok).setEnabled(False)
+        
+        # First collect all the settings data
+        self.app_settings = {
+            "auto_discover": self.auto_discover.isChecked(),
+            "default_min_size": self.default_min_size.value(),
+            "default_max_depth": self.default_max_depth.value(),
+        }
+        
+        # Close the dialog to prevent UI freezing
         super().accept()
-    
-    def update_settings(self):
-        """Update settings after dialog is closed"""
-        try:
-            print("SettingsDialog: Starting settings update")
-            new_settings = {
-                "auto_discover": self.auto_discover.isChecked(),
-                "default_min_size": self.default_min_size.value(),
-                "default_max_depth": self.default_max_depth.value(),
-                "last_directory": self.main_window.current_directory
-            }
-            print("SettingsDialog: New settings prepared:", new_settings)
-            
-            if hasattr(self.main_window, 'update_settings'):
-                print("SettingsDialog: Calling MainWindow.update_settings")
-                self.main_window.update_settings(new_settings, self.categories)
-                print("SettingsDialog: Settings update completed")
-            else:
-                print("Error: MainWindow does not have update_settings method")
-                
-        except Exception as e:
-            print(f"Error updating settings: {e}")
-            QMessageBox.warning(
-                self,
-                "Settings Error",
-                f"Failed to update settings: {str(e)}"
-            )
 

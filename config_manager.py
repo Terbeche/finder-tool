@@ -3,26 +3,6 @@ import os
 from pathlib import Path
 import platform
 from file_category import FileCategory
-from PySide6.QtCore import QObject, Signal
-
-class ConfigManagerWorker(QObject):
-    finished = Signal()
-    error = Signal(str)
-
-    def __init__(self, config_file, data):
-        super().__init__()
-        self.config_file = config_file
-        self.data = data
-
-    def save(self):
-        try:
-            temp_file = self.config_file.with_suffix('.tmp')
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(self.data, f, indent=2)
-            temp_file.replace(self.config_file)
-            self.finished.emit()
-        except Exception as e:
-            self.error.emit(str(e))
 
 class ConfigManager:
     """Manages application configuration and persistence"""
@@ -88,12 +68,9 @@ class ConfigManager:
     def save_settings(self, settings):
         """Save general application settings"""
         try:
-            settings_copy = settings.copy()
             data = self._load_config_data()
-            data["settings"] = settings_copy
+            data["settings"] = settings
             self._save_config_data(data)
-            self._last_saved_settings = settings_copy
-            print(f"Settings saved: {settings_copy}")
         except Exception as e:
             print(f"Error saving settings: {e}")
     

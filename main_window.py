@@ -482,13 +482,21 @@ class MainWindow(QMainWindow):
     def open_settings(self):
         """Open settings dialog"""
         dialog = SettingsDialog(self.categories, self)
-        if dialog.exec():
-            self.categories = dialog.categories
-            # Save categories to config file
-            self.config_manager.save_categories(self.categories)
-            # Refresh the view if needed
-            if self.files:
-                self.refresh_results()
+        if dialog.exec():  # Dialog is fully closed when this returns
+            # Now process the data safely
+            try:
+                print("Settings dialog accepted, updating settings...")
+                # Update in-memory settings
+                self.app_settings.update(dialog.app_settings)
+                self.categories = dialog.categories
+                
+                # Save directly without threading
+                print("Saving settings to disk...")
+                self.config_manager.save_settings(dialog.app_settings)
+                self.config_manager.save_categories(dialog.categories)
+                print("Settings saved successfully")
+            except Exception as e:
+                print(f"Error in settings update: {e}")
     
     def refresh_results(self):
         """Refresh the results table with current categories"""
@@ -593,35 +601,6 @@ class MainWindow(QMainWindow):
         self.pause_button.setText("Pause")
         self.progress_bar.setVisible(False)
         self.statusBar().showMessage("Scan stopped by user.")
-
-    def update_settings(self, new_settings, new_categories=None):
-        """Update application settings and categories"""
-        try:
-            # Update settings
-            self.app_settings.update(new_settings)
-            print("Settings before save:", self.app_settings)
-            
-            # Save settings to config file immediately
-            self.config_manager.save_settings(self.app_settings)
-            
-            # Update categories if provided
-            if new_categories is not None:
-                self.categories = new_categories.copy()
-                self.config_manager.save_categories(self.categories)
-                
-                # Update category combo box
-                self.category_combo.clear()
-                self.category_combo.addItem("All Files")
-                for category in self.categories:
-                    self.category_combo.addItem(category.name)
-
-        except Exception as e:
-            print(f"Error in update_settings: {e}")
-            QMessageBox.warning(
-                self,
-                "Settings Error",
-                f"Failed to update settings: {str(e)}"
-            )
 
     def closeEvent(self, event):
         """Handle window close event"""

@@ -23,10 +23,8 @@ class CategoryDialog(QDialog):
         self.extensions_edit = QLineEdit(", ".join(self.category.extensions))
         form_layout.addRow("Extensions (comma separated):", self.extensions_edit)
 
-        # Color (simplified for now)
+        # Color selection
         self.color_combo = QComboBox()
-
-        # TODO => Add color picker and centralize the colors list in one place
         colors = [
             ("Blue", "#3498db"), ("Red", "#e74c3c"), 
             ("Green", "#2ecc71"), ("Purple", "#9b59b6"),
@@ -37,7 +35,7 @@ class CategoryDialog(QDialog):
         for name, code in colors:
             self.color_combo.addItem(name, code)
             
-        # Set current color if it matches any in our list
+        # Set current color
         for i, (name, code) in enumerate(colors):
             if code.lower() == self.category.color.lower():
                 self.color_combo.setCurrentIndex(i)
@@ -55,14 +53,17 @@ class CategoryDialog(QDialog):
         
         self.setMinimumWidth(400)
     
-    def accept(self):
-        # Update category with new values
-        self.category.name = self.name_edit.text().strip()
-        extensions = [ext.strip() for ext in self.extensions_edit.text().split(",")]
-        self.category.extensions = [ext for ext in extensions if ext]
-        self.category.color = self.color_combo.currentData()
+    def get_category(self):
+        """Return a new category based on dialog inputs"""
+        # Create a new category without reference to dialog
+        result = FileCategory(self.name_edit.text().strip())
         
-        super().accept()
-
-    def reject(self):
-        super().reject()
+        # Process extensions
+        extensions_text = self.extensions_edit.text()
+        if extensions_text:
+            result.extensions = [ext.strip() for ext in extensions_text.split(",") if ext.strip()]
+        else:
+            result.extensions = []
+            
+        result.color = self.color_combo.currentData()
+        return result
