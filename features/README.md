@@ -13,6 +13,7 @@ This folder contains detailed documentation for each feature implemented in the 
 ### Advanced Features
 - **[05-duplicate-detection.md](05-duplicate-detection.md)** - Multi-method duplicate file detection and management
 - **[06-advanced-search-filters.md](06-advanced-search-filters.md)** - Date ranges, filename patterns, content search
+- **[07-batch-rename-tool.md](07-batch-rename-tool.md)** - Pattern-based batch file renaming with preview
 
 ## Feature Status Overview
 
@@ -24,11 +25,11 @@ This folder contains detailed documentation for each feature implemented in the 
 | Data Export | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 | Duplicate Detection | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 | Advanced Search Filters | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
+| Batch Rename Tool | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 
 ## Planned Features (Not Yet Implemented)
 
 ### Next Priority
-- **Batch Rename Tool** - Pattern-based renaming with numbering and case conversion
 - **File Preview Panel** - Thumbnails and previews for images, text files
 - **Media Intelligence** - Video quality analysis, codec identification
 - **Bookmark System** - Save frequently used search locations and filters
@@ -80,6 +81,13 @@ Each feature document includes:
 - Added content search within text files
 - Created collapsible advanced filters UI section
 - Enhanced scan performance with real-time filter application
+
+### Version 1.7 - Batch Rename Tool
+- Added comprehensive pattern-based batch renaming
+- Implemented real-time preview with conflict detection
+- Added find/replace functionality with regex support
+- Included case conversion and extension handling options
+- Created intuitive UI with help documentation
 
 ## Updating Documentation
 

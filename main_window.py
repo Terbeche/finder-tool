@@ -281,6 +281,9 @@ class MainWindow(QMainWindow):
         self.rename_action = QAction("Rename File", self)
         self.rename_action.triggered.connect(self.rename_file)
         
+        self.batch_rename_action = QAction("Batch Rename...", self)
+        self.batch_rename_action.triggered.connect(self.batch_rename_files)
+        
         self.move_action = QAction("Move to Directory...", self)
         self.move_action.triggered.connect(self.move_selected_files)
         
@@ -314,11 +317,13 @@ class MainWindow(QMainWindow):
         # Tools menu
         tools_menu = menu_bar.addMenu("Tools")
         tools_menu.addAction(self.duplicate_action)
+        tools_menu.addAction(self.batch_rename_action)
         
         # Actions menu
         actions_menu = menu_bar.addMenu("Actions")
         actions_menu.addAction(self.delete_action)
         actions_menu.addAction(self.rename_action)
+        actions_menu.addAction(self.batch_rename_action)
         actions_menu.addAction(self.move_action)
         actions_menu.addSeparator()
         actions_menu.addAction(self.export_action)
@@ -584,6 +589,47 @@ class MainWindow(QMainWindow):
                     f"Could not rename {file_info.path}:\n{str(e)}"
                 )
     
+    def batch_rename_files(self):
+        """Open batch rename dialog"""
+        selected_rows = set(index.row() for index in self.results_table.selectedIndexes())
+        
+        if selected_rows:
+            # Use selected files
+            selected_files = [self.files[row] for row in selected_rows]
+            dialog_title = f"Batch Rename {len(selected_files)} Selected Files"
+        elif self.files:
+            # Use all files if none selected
+            confirm = QMessageBox.question(
+                self, "Batch Rename",
+                f"No files are selected. Rename all {len(self.files)} files in the results?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if confirm != QMessageBox.Yes:
+                return
+            selected_files = self.files
+            dialog_title = f"Batch Rename All {len(self.files)} Files"
+        else:
+            QMessageBox.information(self, "No Files", "No files available to rename. Please search for files first.")
+            return
+        
+        # Open batch rename dialog
+        from batch_rename_dialog import BatchRenameDialog
+        dialog = BatchRenameDialog(selected_files, self)
+        dialog.setWindowTitle(dialog_title)
+        
+        if dialog.exec():
+            # Refresh the results table to show new names
+            self.refresh_results_display()
+    
+    def refresh_results_display(self):
+        """Refresh the results table display"""
+        # Update the table with current file information
+        for row in range(self.results_table.rowCount()):
+            if row < len(self.files):
+                file_info = self.files[row]
+                self.results_table.setItem(row, 0, QTableWidgetItem(file_info.name))
+                self.results_table.setItem(row, 1, QTableWidgetItem(file_info.path))
+    
     def export_results(self):
         """Export results to CSV"""
         if not self.files:
@@ -753,6 +799,7 @@ class MainWindow(QMainWindow):
         menu.addAction(self.open_containing_folder_action)
         menu.addSeparator()
         menu.addAction(self.rename_action)
+        menu.addAction(self.batch_rename_action)
         menu.addAction(self.move_action)
         menu.addAction(self.delete_action)
         
@@ -761,6 +808,7 @@ class MainWindow(QMainWindow):
             menu.addSeparator()
             tools_menu = menu.addMenu("Tools")
             tools_menu.addAction(self.duplicate_action)
+            tools_menu.addAction(self.batch_rename_action)
             
             menu.addSeparator()
             menu.addAction(self.export_action)
