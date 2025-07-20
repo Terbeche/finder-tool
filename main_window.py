@@ -9,9 +9,10 @@ from PySide6.QtWidgets import (
     QMainWindow, QFileDialog, QTableWidget, 
     QTableWidgetItem, QHeaderView, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLabel, QLineEdit, QComboBox, QSpinBox,
-    QMessageBox, QMenu, QProgressBar, QGroupBox, QAbstractItemView
+    QMessageBox, QMenu, QProgressBar, QGroupBox, QAbstractItemView,
+    QCheckBox, QDateEdit
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QAction, QColor
 from file_category import FileCategory
 from file_scanner_thread import FileScannerThread
@@ -118,6 +119,71 @@ class MainWindow(QMainWindow):
         
         main_layout.addWidget(search_group)
         
+        # Advanced Filters (Collapsible)
+        self.advanced_group = QGroupBox("Advanced Filters")
+        self.advanced_group.setCheckable(True)
+        self.advanced_group.setChecked(False)
+        advanced_layout = QVBoxLayout(self.advanced_group)
+        
+        # Date range filter
+        date_layout = QHBoxLayout()
+        self.date_filter_enabled = QCheckBox("Filter by date range")
+        self.date_filter_enabled.toggled.connect(self.toggle_date_filter)
+        date_layout.addWidget(self.date_filter_enabled)
+        
+        date_layout.addWidget(QLabel("From:"))
+        self.date_from = QDateEdit()
+        self.date_from.setDate(QDate.currentDate().addDays(-30))
+        self.date_from.setCalendarPopup(True)
+        self.date_from.setEnabled(False)
+        date_layout.addWidget(self.date_from)
+        
+        date_layout.addWidget(QLabel("To:"))
+        self.date_to = QDateEdit()
+        self.date_to.setDate(QDate.currentDate())
+        self.date_to.setCalendarPopup(True)
+        self.date_to.setEnabled(False)
+        date_layout.addWidget(self.date_to)
+        
+        date_layout.addStretch()
+        advanced_layout.addLayout(date_layout)
+        
+        # Filename pattern filter
+        pattern_layout = QHBoxLayout()
+        self.pattern_filter_enabled = QCheckBox("Filename pattern (regex)")
+        self.pattern_filter_enabled.toggled.connect(self.toggle_pattern_filter)
+        pattern_layout.addWidget(self.pattern_filter_enabled)
+        
+        self.pattern_edit = QLineEdit()
+        self.pattern_edit.setPlaceholderText("e.g., IMG_\\d{4}, .*\\.backup\\..*, ^test.*\\.py$")
+        self.pattern_edit.setEnabled(False)
+        pattern_layout.addWidget(self.pattern_edit)
+        
+        advanced_layout.addLayout(pattern_layout)
+        
+        # Content search filter
+        content_layout = QHBoxLayout()
+        self.content_filter_enabled = QCheckBox("Content search (text files only)")
+        self.content_filter_enabled.toggled.connect(self.toggle_content_filter)
+        content_layout.addWidget(self.content_filter_enabled)
+        
+        self.content_edit = QLineEdit()
+        self.content_edit.setPlaceholderText("Search for text within files...")
+        self.content_edit.setEnabled(False)
+        content_layout.addWidget(self.content_edit)
+        
+        advanced_layout.addLayout(content_layout)
+        
+        # Clear filters button
+        clear_layout = QHBoxLayout()
+        clear_layout.addStretch()
+        self.clear_filters_button = QPushButton("Clear Filters")
+        self.clear_filters_button.clicked.connect(self.clear_advanced_filters)
+        clear_layout.addWidget(self.clear_filters_button)
+        advanced_layout.addLayout(clear_layout)
+        
+        main_layout.addWidget(self.advanced_group)
+        
         # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
@@ -152,6 +218,48 @@ class MainWindow(QMainWindow):
         
         # Create menu
         self.create_menu()
+    
+    def toggle_date_filter(self, enabled):
+        """Toggle date filter controls"""
+        self.date_from.setEnabled(enabled)
+        self.date_to.setEnabled(enabled)
+    
+    def toggle_pattern_filter(self, enabled):
+        """Toggle pattern filter controls"""
+        self.pattern_edit.setEnabled(enabled)
+    
+    def toggle_content_filter(self, enabled):
+        """Toggle content filter controls"""
+        self.content_edit.setEnabled(enabled)
+    
+    def clear_advanced_filters(self):
+        """Clear all advanced filters"""
+        self.date_filter_enabled.setChecked(False)
+        self.pattern_filter_enabled.setChecked(False)
+        self.content_filter_enabled.setChecked(False)
+        self.date_from.setDate(QDate.currentDate().addDays(-30))
+        self.date_to.setDate(QDate.currentDate())
+        self.pattern_edit.clear()
+        self.content_edit.clear()
+    
+    def get_advanced_filters(self):
+        """Collect advanced filter settings"""
+        filters = {}
+        
+        # Date range filter
+        if self.date_filter_enabled.isChecked():
+            filters['date_from'] = self.date_from.date().toPython()
+            filters['date_to'] = self.date_to.date().toPython()
+        
+        # Filename pattern filter
+        if self.pattern_filter_enabled.isChecked() and self.pattern_edit.text().strip():
+            filters['filename_pattern'] = self.pattern_edit.text().strip()
+        
+        # Content search filter
+        if self.content_filter_enabled.isChecked() and self.content_edit.text().strip():
+            filters['content_search'] = self.content_edit.text().strip()
+        
+        return filters
     
     def create_actions(self):
         """Create application actions"""
@@ -255,6 +363,9 @@ class MainWindow(QMainWindow):
         min_size = self.min_size.value()
         max_size = self.max_size.value() if self.max_size.value() > 0 else None
         
+        # Get advanced filters
+        advanced_filters = self.get_advanced_filters()
+        
         # Clear previous results
         self.results_table.setRowCount(0)
         self.files = []
@@ -274,7 +385,7 @@ class MainWindow(QMainWindow):
         # Create and start scanner thread
         self.scanner_thread = FileScannerThread(
             directory, min_size, max_size, extensions, 
-            self.categories, self.max_depth.value()
+            self.categories, self.max_depth.value(), advanced_filters
         )
         self.scanner_thread.update_progress.connect(self.update_progress)
         self.scanner_thread.file_found.connect(self.add_file_to_results)
