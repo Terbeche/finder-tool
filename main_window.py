@@ -176,6 +176,9 @@ class MainWindow(QMainWindow):
         self.move_action = QAction("Move to Directory...", self)
         self.move_action.triggered.connect(self.move_selected_files)
         
+        self.duplicate_action = QAction("Find Duplicates...", self)
+        self.duplicate_action.triggered.connect(self.find_duplicates)
+        
         # Export action
         self.export_action = QAction("Export Results to CSV", self)
         self.export_action.triggered.connect(self.export_results)
@@ -199,6 +202,10 @@ class MainWindow(QMainWindow):
         # Edit menu
         edit_menu = menu_bar.addMenu("Edit")
         edit_menu.addAction(self.settings_action)
+        
+        # Tools menu
+        tools_menu = menu_bar.addMenu("Tools")
+        tools_menu.addAction(self.duplicate_action)
         
         # Actions menu
         actions_menu = menu_bar.addMenu("Actions")
@@ -638,8 +645,12 @@ class MainWindow(QMainWindow):
         menu.addAction(self.move_action)
         menu.addAction(self.delete_action)
         
-        # Add export option if there are results
+        # Add tools submenu if there are results
         if self.files:
+            menu.addSeparator()
+            tools_menu = menu.addMenu("Tools")
+            tools_menu.addAction(self.duplicate_action)
+            
             menu.addSeparator()
             menu.addAction(self.export_action)
         
@@ -823,3 +834,13 @@ class MainWindow(QMainWindow):
                 self, "Move Operation Complete",
                 f"Successfully moved {moved_count} files to:\n{target_dir}"
             )
+    
+    def find_duplicates(self):
+        """Open duplicate detection dialog"""
+        if not self.files:
+            QMessageBox.information(self, "No Files", "Please search for files first before detecting duplicates.")
+            return
+        
+        from duplicate_dialog import DuplicateDialog
+        dialog = DuplicateDialog(self.files, self)
+        dialog.exec()
