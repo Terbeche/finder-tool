@@ -1,249 +1,249 @@
 # Advanced Search Filters
 
 ## Overview
-Enhanced search capabilities that allow users to filter files based on multiple criteria including date ranges, filename patterns (regex), and content search within text files, providing precise file discovery beyond basic size and type filters.
+Extended search capabilities that allow users to find files using sophisticated filtering criteria including date ranges, filename patterns (regex), and content search within text files. These filters work in combination with basic search options for precise file discovery.
 
 ## Need/Purpose
-- Users need more granular control over file searches
-- Find files modified within specific time periods
-- Locate files with specific naming patterns
-- Search for files containing specific text content
-- Combine multiple criteria for precise results
-- Reduce result sets to focus on relevant files
+- Users need to find files based on specific time periods or creation dates
+- Complex filename patterns require regex-based searching
+- Content search helps locate files containing specific text
+- Combined filtering provides powerful file discovery capabilities
+- Real-time filter application improves search efficiency
 
 ## Features Implemented
-- ✅ Date range filtering by modification time
-- ✅ Filename pattern matching using regular expressions
+- ✅ Date range filtering by file modification time
+- ✅ Regular expression-based filename pattern matching
 - ✅ Content search within text files
-- ✅ Collapsible advanced filters section
-- ✅ Filter combination logic
+- ✅ Collapsible Advanced Filters UI section
+- ✅ Real-time filter validation and application
+- ✅ Filter combination with basic search criteria
 - ✅ Clear filters functionality
-- ✅ Real-time filter application during scan
-- ✅ Persistent filter settings per session
-
-## Advanced Filter Types
-
-### 1. Date Range Filter
-- **Purpose**: Find files modified within specific time periods
-- **Implementation**: Modification date comparison
-- **UI**: Calendar date pickers for from/to dates
-- **Default Range**: Last 30 days to current date
-
-### 2. Filename Pattern Filter  
-- **Purpose**: Match files with specific naming patterns
-- **Implementation**: Regular expression matching (case-insensitive)
-- **Examples**:
-  - `IMG_\d{4}` - Find image files with 4-digit numbers
-  - `.*\.backup\..*` - Find backup files
-  - `^test.*\.py$` - Find Python test files
-  - `\d{4}-\d{2}-\d{2}` - Find files with date patterns
-
-### 3. Content Search Filter
-- **Purpose**: Find text files containing specific content
-- **Implementation**: Text search within file contents
-- **Scope**: Limited to recognized text file extensions
-- **Performance**: Reads first 1MB of each file to avoid memory issues
-- **Supported Extensions**: txt, md, py, js, html, css, xml, json, csv, log, conf, ini, cfg, yml, yaml, sh, bat, ps1
+- ✅ Intelligent file type detection for content search
 
 ## How to Test
 
-### Basic Date Range Filtering
-1. Expand "Advanced Filters" section
-2. Check "Filter by date range"
-3. Set "From" date to 1 week ago
-4. Set "To" date to today
-5. Start a search
-6. **Expected Result**: Only files modified within the last week are shown
+### Basic Advanced Filters Access
+1. Start the application and navigate to a directory
+2. Look for "Advanced Filters" section below basic search options
+3. Check the checkbox to expand the advanced filters section
+4. **Expected Result**: Advanced filter options become visible and accessible
 
-### Filename Pattern Matching
+### Date Range Filtering
+1. Enable "Filter by date range" checkbox
+2. Set "From" date to 7 days ago
+3. Set "To" date to today
+4. Run a search
+5. **Expected Result**: Only files modified within the last 7 days are shown
+
+#### Date Range Test Cases
+- **Recent files**: Set range to last 24 hours
+- **Old files**: Set range to >1 year ago
+- **Specific period**: Set exact date range (e.g., January 2024)
+- **Invalid range**: Set "From" date after "To" date
+- **Expected Results**: Appropriate files found, invalid ranges handled gracefully
+
+### Filename Pattern Matching (Regex)
 1. Enable "Filename pattern (regex)" checkbox
-2. Test patterns:
-   - `\d+` - Files with numbers in the name
-   - `^IMG` - Files starting with "IMG"
-   - `\.log$` - Files ending with .log
-   - `backup` - Files containing "backup"
-3. Start search
-4. **Expected Result**: Only files matching the pattern are found
+2. Test various patterns:
+   - `IMG_\d{4}` - Find files like IMG_1234.jpg
+   - `.*\.backup\..*` - Find backup files
+   - `^test.*\.py$` - Find Python test files
+   - `[Ss]creenshot.*` - Case-insensitive screenshot files
+3. **Expected Result**: Files matching regex patterns are found
 
-### Content Search Testing
-1. Enable "Content search (text files only)"
+#### Pattern Test Cases
+- **Simple patterns**: `*.pdf`, `document*`
+- **Complex regex**: `^[A-Z]{2,3}_\d{4}_.*\.(jpg|png)$`
+- **Case sensitivity**: Test with mixed case patterns
+- **Invalid regex**: Enter malformed regex pattern
+- **Expected Results**: Valid patterns work, invalid patterns are ignored
+
+### Content Search in Text Files
+1. Enable "Content search (text files only)" checkbox
 2. Enter search terms:
-   - `function` - Find files containing "function"
-   - `import` - Find files with import statements
-   - `TODO` - Find files with TODO comments
-3. Start search
-4. **Expected Result**: Only text files containing the search term are shown
+   - Simple words: "function", "class", "import"
+   - Phrases: "def main", "if __name__"
+   - Technical terms: "TODO", "FIXME", "Copyright"
+3. Search in directory with code/text files
+4. **Expected Result**: Only files containing the search term are shown
 
-### Combined Filters Testing
+#### Content Search Test Cases
+- **Code files**: Search for "def " in Python files
+- **Configuration files**: Search for specific settings
+- **Log files**: Search for error messages or timestamps
+- **Mixed content**: Search in directory with both text and binary files
+- **Large files**: Test content search performance on large text files
+- **Expected Results**: Accurate content matching, reasonable performance
+
+### Combined Filter Testing
 1. Enable multiple filters simultaneously:
-   - Date range: Last 7 days
-   - Pattern: `\.py$` (Python files)
-   - Content: `class`
-2. Start search
-3. **Expected Result**: Only Python files from last 7 days containing "class"
+   - Date range: Last 30 days
+   - Pattern: `.*\.(py|js|html)$`
+   - Content: "function"
+2. Run search
+3. **Expected Result**: Files must match ALL enabled filters
 
-### Filter Persistence
-1. Set up multiple filters
-2. Perform a search
-3. Start a new search without changing filters
-4. **Expected Result**: Filters remain active until manually cleared
+### Filter Interaction Testing
+1. **Basic + Advanced**: Combine file type selection with date range
+2. **Size + Pattern**: Combine size filters with filename patterns
+3. **All filters**: Enable all basic and advanced filters
+4. **Expected Result**: Filters work together logically
 
-## Advanced Testing Scenarios
+### Clear Filters Functionality
+1. Set multiple advanced filters
+2. Click "Clear Filters" button
+3. **Expected Result**: All advanced filters are reset to default state
 
-### Date Range Edge Cases
-1. **Same Date Range**: Set from and to date to same day
-2. **Future Dates**: Set range in the future
-3. **Reverse Range**: Set 'from' date after 'to' date
-4. **Year Boundaries**: Test across year boundaries
-5. **Expected Result**: Appropriate handling of edge cases
+## Advanced Testing
+
+### Performance Testing
+1. **Large directories**: Test advanced filters on 10,000+ files
+2. **Complex regex**: Use computationally expensive patterns
+3. **Content search**: Search large text files (>10MB)
+4. **Combined filters**: Multiple simultaneous filters on large datasets
+5. **Expected Result**: Reasonable performance, no UI freezing
+
+### Edge Cases
+1. **Empty search terms**: Enable filters with empty input fields
+2. **Very long patterns**: Extremely long regex patterns
+3. **Binary files**: Content search on non-text files
+4. **Permission denied**: Filters on inaccessible files
+5. **Network drives**: Advanced filters on slow network storage
+6. **Expected Result**: Graceful handling of all edge cases
 
 ### Regex Pattern Validation
-1. **Invalid Regex**: Enter malformed patterns like `[abc`
-2. **Complex Patterns**: Test nested groups `(img|photo)_\d{4}`
-3. **Case Sensitivity**: Verify case-insensitive matching
-4. **Unicode**: Test with international characters
-5. **Expected Result**: Graceful handling of invalid patterns, robust matching
+1. **Valid patterns**: Standard regex constructs
+2. **Invalid syntax**: Malformed regex patterns
+3. **Performance killers**: Patterns causing excessive backtracking
+4. **Special characters**: Regex metacharacters in patterns
+5. **Expected Result**: Valid patterns work, invalid ones are ignored safely
 
-### Content Search Performance
-1. **Large Files**: Search in files >100MB
-2. **Binary Files**: Search in non-text files (should be skipped)
-3. **Many Files**: Search across 1000+ text files
-4. **Special Characters**: Search for Unicode/special characters
-5. **Expected Result**: Reasonable performance, proper file type handling
-
-### Filter Combinations
-1. **All Filters Active**: Enable all three filter types
-2. **Conflicting Criteria**: Set impossible combinations
-3. **Very Restrictive**: Use filters that match very few files
-4. **Progressive Refinement**: Add filters one by one
-5. **Expected Result**: Logical AND combination of all filters
+### Content Search Limitations
+1. **File encoding**: Test with UTF-8, ASCII, other encodings
+2. **Binary files**: Ensure binary files are skipped appropriately
+3. **Large files**: Test memory usage with very large text files
+4. **Special characters**: Search for Unicode characters
+5. **Expected Result**: Robust handling of various file types and encodings
 
 ## Technical Implementation
 
-### Date Filtering
+### Date Range Filtering
+- Uses file modification timestamp (`stat().st_mtime`)
+- Converts QDate to Python date objects for comparison
+- Applied during file scanning for efficiency
+
+### Regex Pattern Matching
+- Compiles regex patterns using Python's `re` module
+- Case-insensitive matching by default
+- Invalid patterns are silently ignored to prevent crashes
+- Applied to filename only, not full path
+
+### Content Search Algorithm
 ```python
-def _check_date_filter(self, file_mtime):
-    file_date = file_mtime.date()
-    if 'date_from' in filters and file_date < filters['date_from']:
-        return False
-    if 'date_to' in filters and file_date > filters['date_to']:
-        return False
-    return True
+# Text file extensions for content search
+text_extensions = {
+    'txt', 'md', 'py', 'js', 'html', 'css', 'xml', 'json', 
+    'csv', 'log', 'conf', 'ini', 'cfg', 'yml', 'yaml'
+}
+
+# Content search implementation
+def search_file_content(file_path, search_term):
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read(1024 * 1024)  # Read first 1MB
+            return search_term.lower() in content.lower()
+    except (IOError, UnicodeDecodeError):
+        return True  # Skip files that can't be read
 ```
 
-### Pattern Matching
-```python
-def _check_filename_pattern(self, filename):
-    if not self.filename_pattern:
-        return True
-    return bool(self.filename_pattern.search(filename))
-```
+### UI Implementation
+- Collapsible QGroupBox for advanced filters section
+- Real-time enable/disable of filter controls
+- Checkbox-controlled filter activation
+- Clear filters resets all advanced filter state
 
-### Content Search
-```python
-def _check_content_search(self, file_path, extension):
-    if extension not in self.text_extensions:
-        return True  # Skip non-text files
-    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-        content = f.read(1024 * 1024).lower()  # Read first 1MB
-        return search_term in content
-```
-
-### Filter Integration
-- Filters applied during scan for efficiency
-- Early termination when filters don't match
-- Graceful error handling for inaccessible files
-- Memory-efficient content reading
-
-## User Interface Features
-- **Collapsible Section**: Advanced filters in expandable group box
-- **Toggle Controls**: Individual enable/disable for each filter
-- **Clear Filters**: One-click reset of all advanced filters
-- **Visual Feedback**: Disabled controls when filters not active
-- **Helpful Placeholders**: Example patterns and descriptions
-
-## Performance Considerations
-- **Date Filtering**: Very fast (metadata only)
-- **Pattern Matching**: Fast (filename string operations)
-- **Content Search**: Slower (file I/O required)
-- **Optimization**: Content search limited to 1MB per file
-- **Scaling**: Filters applied during scan to reduce memory usage
-
-## Configuration Options
-- Text file extensions list (customizable)
-- Content search read limit (default 1MB)
-- Regex flags (case sensitivity, multiline)
-- Default date ranges
+## Configuration and Settings
+- Advanced filter preferences persist between sessions
+- Default date ranges (last 30 days)
+- Regex pattern history (potential future enhancement)
+- Content search file type associations
 
 ## Known Limitations
-- Content search limited to text files only
-- Large binary files may slow down content search
-- Complex regex patterns may impact performance
-- Content search reads file portions only (first 1MB)
-- Network files dependent on connection speed
+- Content search limited to first 1MB of each file
+- Regex patterns may impact performance on large datasets
+- Binary file detection based on extension, not content analysis
+- No preview of how many files match each filter before applying
+- Date filtering only uses modification time, not creation time
 
-## Error Handling
-- **Invalid Regex**: Silently ignore malformed patterns
-- **File Access**: Skip files that can't be read
-- **Encoding Issues**: Use error-ignore mode for text reading
-- **Permission Denied**: Continue scan with other files
+## Troubleshooting Guide
+
+### Common Issues
+
+**Problem**: Regex pattern not finding expected files
+**Solutions**: 
+- Verify regex syntax using online regex testers
+- Check case sensitivity requirements
+- Ensure pattern matches filename, not full path
+
+**Problem**: Content search not finding known text
+**Solutions**:
+- Verify file is recognized as text file type
+- Check file encoding (UTF-8 preferred)
+- Ensure search term spelling is correct
+- File might be larger than 1MB search limit
+
+**Problem**: Date range filter returning unexpected results
+**Solutions**:
+- Check system time zone settings
+- Verify file modification dates using file manager
+- Ensure date range is logically valid (from < to)
+
+**Problem**: Advanced filters slow down search significantly
+**Solutions**:
+- Use simpler regex patterns
+- Limit content search to smaller directories
+- Disable unnecessary advanced filters
+- Consider using basic filters first to reduce dataset
+
+### Performance Tips
+1. Use specific basic filters (file type, size) before applying advanced filters
+2. Test regex patterns on small datasets first
+3. Content search works best on directories with primarily text files
+4. Date range filters are fastest, use them when possible
 
 ## Security Considerations
-- Content search respects file permissions
-- No sensitive file access outside user permissions
-- Safe regex handling prevents ReDoS attacks
-- Limited file reading prevents memory exhaustion
+- Regex patterns are compiled safely with error handling
+- File content is read with encoding error handling
+- No execution of file content, only text searching
+- Permission errors are handled gracefully
 
 ## Future Enhancements
-- **File Metadata Search**: Search in EXIF, ID3 tags, document properties
-- **Advanced Date Options**: Creation date, access date, date arithmetic
-- **Content Preview**: Show matching content snippets in results
-- **Saved Filter Sets**: Store and recall common filter combinations
-- **File Size Patterns**: More granular size filtering options
-- **Exclusion Filters**: Negative matching capabilities
+- **Content search improvements**: Full file content indexing
+- **Pattern suggestions**: Common regex pattern templates
+- **Filter presets**: Save and reload filter combinations
+- **Advanced date options**: Creation date, access date filtering
+- **File metadata search**: Search by EXIF data, document properties
+- **Search within archives**: Content search inside ZIP/RAR files
+- **Performance optimization**: Parallel processing for large datasets
+
+## Integration with Other Features
+- **File Scanning**: Advanced filters applied during scan process
+- **File Categories**: Works with category-based filtering
+- **Export Results**: Filtered results can be exported to CSV
+- **Duplicate Detection**: Can find duplicates within filtered results
+- **File Operations**: All file operations work on filtered results
 
 ## Related Features
-- File Scanning (applies filters during scan)
+- File Scanning (provides base functionality)
 - Results Display (shows filtered results)
-- Settings Management (could store default filters)
-- Export System (exports filtered results)
-
-## Testing Checklist
-- [ ] Date range filtering accuracy
-- [ ] Regex pattern validation and matching
-- [ ] Content search in various text formats
-- [ ] Filter combination logic
-- [ ] Performance with large datasets
-- [ ] Error handling for edge cases
-- [ ] UI responsiveness with filters active
-- [ ] Clear filters functionality
-- [ ] Cross-platform compatibility
-- [ ] Memory usage during content search
-- Date range presets (last week, last month)
-
-### Performance Improvements
-- Indexed content search for faster repeat searches
-- Parallel file processing
-- Smart caching of filter results
-- Background indexing option
-
-## Related Features
-- File Scanning (applies filters during scan)
-- File Categorization (works with category filtering)
-- Results Display (shows filtered results)
-- Export Functionality (exports filtered results)
-- Settings Management (filter preferences)
+- Settings Management (stores filter preferences)
+- File Operations (acts on filtered files)
 
 ## Dependencies
-- **re module**: For regex pattern matching
-- **datetime**: For date range processing
-- **QDateEdit**: For date selection UI
-- **QCheckBox**: For filter enable/disable
-- **file_scanner_thread**: Enhanced with filter support
-
-## Testing Checklist
-
-### Basic Functionality
+- **re module**: Python regular expressions
+- **datetime**: Date handling and comparison
+- **pathlib**: File system operations
+- **QDate**: Qt date handling for UI
 - [ ] Date range filtering works correctly
 - [ ] Filename pattern matching functions
 - [ ] Content search finds text in files
