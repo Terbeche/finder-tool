@@ -12,6 +12,7 @@ This folder contains detailed documentation for each feature implemented in the 
 
 ### Advanced Features
 - **[05-duplicate-detection.md](05-duplicate-detection.md)** - Multi-method duplicate file detection and management
+- **[06-advanced-search-filters.md](06-advanced-search-filters.md)** - Date ranges, filename patterns, content search
 
 ## Feature Status Overview
 
@@ -22,22 +23,22 @@ This folder contains detailed documentation for each feature implemented in the 
 | File Operations | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 | Data Export | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 | Duplicate Detection | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
+| Advanced Search Filters | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 
 ## Planned Features (Not Yet Implemented)
 
 ### Next Priority
-- **Advanced Search Filters** - Date ranges, file name patterns, content search
 - **Batch Rename Tool** - Pattern-based renaming with numbering and case conversion
 - **File Preview Panel** - Thumbnails and previews for images, text files
+- **Media Intelligence** - Video quality analysis, codec identification
 - **Bookmark System** - Save frequently used search locations and filters
 - **Search History** - Track and replay previous searches
 
 ### Future Enhancements
-- **Media Intelligence** - Video quality analysis, codec identification
-- **Storage Optimization** - Smart cleanup suggestions and ROI analysis
 - **Cloud Integration** - Compare local vs cloud files, migration suggestions
 - **Security Features** - File integrity checking, suspicious file detection
 - **System Integration** - Context menus, scheduled scans, startup integration
+- **Usage Analytics** - File access patterns and storage optimization suggestions
 
 ## How to Use This Documentation
 
@@ -70,6 +71,15 @@ Each feature document includes:
 - **Configuration**: Settings and customization options
 - **Known Limitations**: Current constraints and edge cases
 - **Related Features**: Dependencies and integrations
+
+## Recent Updates
+
+### Version 1.6 - Advanced Search Filters
+- Added date range filtering by modification time
+- Implemented regex-based filename pattern matching
+- Added content search within text files
+- Created collapsible advanced filters UI section
+- Enhanced scan performance with real-time filter application
 
 ## Updating Documentation
 
