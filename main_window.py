@@ -173,6 +173,10 @@ class MainWindow(QMainWindow):
         self.rename_action = QAction("Rename File", self)
         self.rename_action.triggered.connect(self.rename_file)
         
+        # Export action
+        self.export_action = QAction("Export Results to CSV", self)
+        self.export_action.triggered.connect(self.export_results)
+        
         # Help menu actions
         self.about_action = QAction("About", self)
         self.about_action.triggered.connect(self.show_about)
@@ -186,6 +190,8 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.open_containing_folder_action)
         file_menu.addSeparator()
+        file_menu.addAction(self.export_action)
+        file_menu.addSeparator()
         
         # Edit menu
         edit_menu = menu_bar.addMenu("Edit")
@@ -195,6 +201,8 @@ class MainWindow(QMainWindow):
         actions_menu = menu_bar.addMenu("Actions")
         actions_menu.addAction(self.delete_action)
         actions_menu.addAction(self.rename_action)
+        actions_menu.addSeparator()
+        actions_menu.addAction(self.export_action)
         
         # Help menu
         help_menu = menu_bar.addMenu("Help")
@@ -531,16 +539,34 @@ class MainWindow(QMainWindow):
             return
             
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            import csv
+            with open(file_path, 'w', encoding='utf-8-sig', newline='') as f:
+                # Use semicolon as delimiter for better Excel compatibility
+                writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
+                
                 # Write header
-                f.write("Name,Path,Size,Modified Date,Category\n")
+                writer.writerow(["Name", "Path", "Size (Bytes)", "Size (Human)", "Type", "Modified Date", "Category"])
                 
                 # Write data
                 for file_info in self.files:
                     category_name = file_info.category.name if file_info.category else "Uncategorized"
-                    f.write(f'"{file_info.name}","{file_info.path}",{file_info.size},"{file_info.modified_date}","{category_name}"\n')
+                    writer.writerow([
+                        file_info.name,
+                        file_info.path,
+                        str(file_info.size),
+                        file_info.get_size_str(),
+                        file_info.extension or "",
+                        file_info.modified_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        category_name
+                    ])
                     
-            QMessageBox.information(self, "Export Complete", f"Results exported to {file_path}")
+            QMessageBox.information(self, "Export Complete", 
+                f"Results exported to {file_path}\n\n"
+                f"Exported {len(self.files)} files with 7 columns:\n"
+                f"Name, Path, Size (Bytes), Size (Human), Type, Modified Date, Category\n\n"
+                f"If columns appear merged when opening:\n"
+                f"- In Excel: Use 'Data' > 'Text to Columns' with comma delimiter\n"
+                f"- In LibreOffice: Choose comma as separator when opening")
         except Exception as e:
             QMessageBox.critical(self, "Export Error", f"Failed to export results: {str(e)}")
     
@@ -566,6 +592,11 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
+        
+        # Add export option if there are results
+        if self.files:
+            menu.addSeparator()
+            menu.addAction(self.export_action)
         
         # Show menu at cursor position
         menu.exec_(self.results_table.viewport().mapToGlobal(position))
