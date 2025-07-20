@@ -1,10 +1,11 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QWidget, QHBoxLayout,
                               QPushButton, QCheckBox, QGroupBox, QFormLayout, QSpinBox,
                               QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox,
-                              QMessageBox)
+                              QMessageBox, QComboBox, QLabel)
 from PySide6.QtGui import QColor, QFont
 
 from category_dialog import CategoryDialog
+from theme_manager import theme_manager
 
 class SettingsDialog(QDialog):
     """Dialog for application settings"""
@@ -21,8 +22,69 @@ class SettingsDialog(QDialog):
     def setup_ui(self):
         layout = QVBoxLayout(self)
         
-        # Categories tab
         tab_widget = QTabWidget()
+        
+        # General settings tab
+        general_widget = QWidget()
+        general_layout = QVBoxLayout(general_widget)
+        
+        # Theme selection
+        theme_group = QGroupBox("Appearance")
+        theme_layout = QFormLayout(theme_group)
+        
+        self.theme_combo = QComboBox()
+        theme_names = theme_manager.get_theme_names()
+        self.theme_combo.addItems(theme_names)
+        
+        # Set current theme
+        current_theme = self.app_settings.get("theme", "Light")
+        index = self.theme_combo.findText(current_theme)
+        if index >= 0:
+            self.theme_combo.setCurrentIndex(index)
+        
+        # Connect theme change
+        self.theme_combo.currentTextChanged.connect(self.preview_theme)
+        
+        theme_layout.addRow("Theme:", self.theme_combo)
+        
+        # Theme preview
+        self.theme_preview = QLabel("Select a theme to see the changes applied immediately")
+        self.theme_preview.setWordWrap(True)
+        theme_layout.addRow("Preview:", self.theme_preview)
+        
+        general_layout.addWidget(theme_group)
+        
+        # Auto-discover extensions
+        discovery_group = QGroupBox("File Discovery")
+        discovery_layout = QVBoxLayout(discovery_group)
+        
+        self.auto_discover = QCheckBox("Auto-discover and suggest new file extensions")
+        self.auto_discover.setChecked(self.app_settings.get("auto_discover", True))
+        discovery_layout.addWidget(self.auto_discover)
+        
+        general_layout.addWidget(discovery_group)
+        
+        # Default scan settings
+        scan_group = QGroupBox("Default Scan Settings")
+        scan_layout = QFormLayout(scan_group)
+
+        self.default_min_size = QSpinBox()
+        self.default_min_size.setRange(0, 10000)
+        self.default_min_size.setValue(self.app_settings.get("default_min_size", 0))
+        self.default_min_size.setSuffix(" MB")
+        scan_layout.addRow("Default Minimum Size:", self.default_min_size)
+        
+        self.default_max_depth = QSpinBox()
+        self.default_max_depth.setRange(1, 100)
+        self.default_max_depth.setValue(self.app_settings.get("default_max_depth", 15))
+        scan_layout.addRow("Default Maximum Depth:", self.default_max_depth)
+        
+        general_layout.addWidget(scan_group)
+        general_layout.addStretch()
+        
+        tab_widget.addTab(general_widget, "General")
+        
+        # Categories tab
         categories_widget = QWidget()
         categories_layout = QVBoxLayout(categories_widget)
 
@@ -51,35 +113,6 @@ class SettingsDialog(QDialog):
         
         tab_widget.addTab(categories_widget, "File Categories")
         
-        # General settings tab
-        general_widget = QWidget()
-        general_layout = QVBoxLayout(general_widget)
-        
-        # Auto-discover extensions
-        self.auto_discover = QCheckBox("Auto-discover and suggest new file extensions")
-        self.auto_discover.setChecked(self.app_settings.get("auto_discover", True))
-        general_layout.addWidget(self.auto_discover)
-        
-        # Default scan settings
-        scan_group = QGroupBox("Default Scan Settings")
-        scan_layout = QFormLayout(scan_group)
-
-        self.default_min_size = QSpinBox()
-        self.default_min_size.setRange(0, 10000)
-        self.default_min_size.setValue(self.app_settings.get("default_min_size", 0))
-        self.default_min_size.setSuffix(" MB")
-        scan_layout.addRow("Default Minimum Size:", self.default_min_size)
-        
-        self.default_max_depth = QSpinBox()
-        self.default_max_depth.setRange(1, 100)
-        self.default_max_depth.setValue(self.app_settings.get("default_max_depth", 15))
-        scan_layout.addRow("Default Maximum Depth:", self.default_max_depth)
-        
-        general_layout.addWidget(scan_group)
-        general_layout.addStretch()
-        
-        tab_widget.addTab(general_widget, "General")
-        
         layout.addWidget(tab_widget)
         
         # Dialog buttons
@@ -88,7 +121,29 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
         
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(600, 500)
+    
+    def preview_theme(self, theme_name):
+        """Preview theme changes immediately"""
+        # Map display names to internal names
+        theme_map = {
+            "Light": "light",
+            "Dark": "dark", 
+            "Nature": "nature"
+        }
+        
+        internal_name = theme_map.get(theme_name, "light")
+        theme_manager.apply_theme(internal_name)
+        
+        # Update preview text
+        theme_descriptions = {
+            "Light": "Clean and bright interface with blue accents",
+            "Dark": "Easy on the eyes with purple highlights",
+            "Nature": "Relaxing green theme inspired by nature"
+        }
+        
+        description = theme_descriptions.get(theme_name, "Theme preview")
+        self.theme_preview.setText(f"✨ {description}")
     
     def update_categories_table(self):
         """Update the categories table with current data"""
@@ -154,13 +209,40 @@ class SettingsDialog(QDialog):
         # Disable the OK button to prevent multiple clicks
         self.findChild(QDialogButtonBox).button(QDialogButtonBox.Ok).setEnabled(False)
         
+        # Map display names to internal names for saving
+        theme_map = {
+            "Light": "light",
+            "Dark": "dark", 
+            "Nature": "nature"
+        }
+        
+        selected_theme = self.theme_combo.currentText()
+        internal_theme = theme_map.get(selected_theme, "light")
+        
         # First collect all the settings data
         self.app_settings = {
             "auto_discover": self.auto_discover.isChecked(),
             "default_min_size": self.default_min_size.value(),
             "default_max_depth": self.default_max_depth.value(),
+            "theme": selected_theme,  # Store display name
+            "theme_internal": internal_theme,  # Store internal name
         }
         
         # Close the dialog to prevent UI freezing
         super().accept()
+    
+    def reject(self):
+        """Handle dialog rejection - restore original theme"""
+        # Restore original theme
+        original_theme = self.main_window.app_settings.get("theme_internal", "light")
+        theme_manager.apply_theme(original_theme)
+        super().reject()
+        super().accept()
+    
+    def reject(self):
+        """Handle dialog rejection - restore original theme"""
+        # Restore original theme
+        original_theme = self.main_window.app_settings.get("theme_internal", "light")
+        theme_manager.apply_theme(original_theme)
+        super().reject()
 

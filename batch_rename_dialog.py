@@ -1,13 +1,15 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-    QLineEdit, QComboBox, QCheckBox, QSpinBox, QTableWidget,
-    QTableWidgetItem, QGroupBox, QFormLayout, QMessageBox,
-    QHeaderView, QSplitter, QTextEdit
+    QLineEdit, QComboBox, QSpinBox, QCheckBox, QGroupBox,
+    QFormLayout, QTableWidget, QTableWidgetItem, QHeaderView,
+    QMessageBox, QProgressDialog, QDialogButtonBox, QTabWidget,
+    QWidget, QTextEdit
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 import re
 import os
+import shutil
 from pathlib import Path
 
 
@@ -17,8 +19,7 @@ class BatchRenameDialog(QDialog):
     def __init__(self, files, parent=None):
         super().__init__(parent)
         self.files = files
-        self.preview_names = []
-        self.setWindowTitle("Batch Rename Tool")
+        self.setWindowTitle("Batch Rename Files")
         self.setModal(True)
         self.resize(800, 600)
         self.setup_ui()
@@ -28,237 +29,203 @@ class BatchRenameDialog(QDialog):
         """Set up the user interface"""
         layout = QVBoxLayout(self)
         
-        # Create splitter for options and preview
-        splitter = QSplitter(Qt.Vertical)
+        # Create tab widget for different rename methods
+        tab_widget = QTabWidget()
         
-        # Rename options section
-        options_widget = QGroupBox("Rename Options")
-        options_layout = QVBoxLayout(options_widget)
+        # Pattern Replace Tab
+        pattern_tab = QWidget()
+        pattern_layout = QVBoxLayout(pattern_tab)
         
-        # Pattern-based renaming
-        pattern_group = QGroupBox("Pattern Renaming")
-        pattern_layout = QFormLayout(pattern_group)
+        # Find and Replace
+        find_replace_group = QGroupBox("Find and Replace")
+        find_replace_layout = QFormLayout(find_replace_group)
         
-        self.use_pattern = QCheckBox("Use naming pattern")
-        self.use_pattern.toggled.connect(self.update_preview)
-        pattern_layout.addRow(self.use_pattern)
+        self.find_text = QLineEdit()
+        self.find_text.setPlaceholderText("Text to find...")
+        self.find_text.textChanged.connect(self.update_preview)
+        find_replace_layout.addRow("Find:", self.find_text)
         
-        self.pattern_edit = QLineEdit("File_{counter:03d}")
-        self.pattern_edit.setPlaceholderText("e.g., IMG_{counter:03d}, {name}_backup, Photo_{date}")
-        self.pattern_edit.textChanged.connect(self.update_preview)
-        pattern_layout.addRow("Pattern:", self.pattern_edit)
+        self.replace_text = QLineEdit()
+        self.replace_text.setPlaceholderText("Replace with...")
+        self.replace_text.textChanged.connect(self.update_preview)
+        find_replace_layout.addRow("Replace:", self.replace_text)
         
-        # Counter settings
-        counter_layout = QHBoxLayout()
+        self.case_sensitive = QCheckBox("Case sensitive")
+        self.case_sensitive.toggled.connect(self.update_preview)
+        find_replace_layout.addRow("", self.case_sensitive)
+        
+        pattern_layout.addWidget(find_replace_group)
+        
+        # Numbering
+        numbering_group = QGroupBox("Add Numbering")
+        numbering_layout = QFormLayout(numbering_group)
+        
+        self.add_numbering = QCheckBox("Add numbers to filenames")
+        self.add_numbering.toggled.connect(self.update_preview)
+        numbering_layout.addRow("", self.add_numbering)
+        
+        self.number_position = QComboBox()
+        self.number_position.addItems(["Before filename", "After filename", "Before extension"])
+        self.number_position.currentTextChanged.connect(self.update_preview)
+        numbering_layout.addRow("Position:", self.number_position)
+        
         self.start_number = QSpinBox()
         self.start_number.setRange(0, 9999)
         self.start_number.setValue(1)
         self.start_number.valueChanged.connect(self.update_preview)
-        counter_layout.addWidget(QLabel("Start:"))
-        counter_layout.addWidget(self.start_number)
+        numbering_layout.addRow("Start from:", self.start_number)
         
-        self.step_number = QSpinBox()
-        self.step_number.setRange(1, 100)
-        self.step_number.setValue(1)
-        self.step_number.valueChanged.connect(self.update_preview)
-        counter_layout.addWidget(QLabel("Step:"))
-        counter_layout.addWidget(self.step_number)
-        counter_layout.addStretch()
+        self.number_padding = QSpinBox()
+        self.number_padding.setRange(1, 6)
+        self.number_padding.setValue(2)
+        self.number_padding.valueChanged.connect(self.update_preview)
+        numbering_layout.addRow("Zero padding:", self.number_padding)
         
-        pattern_layout.addRow("Counter:", counter_layout)
-        options_layout.addWidget(pattern_group)
+        pattern_layout.addWidget(numbering_group)
         
-        # Find and replace
-        replace_group = QGroupBox("Find and Replace")
-        replace_layout = QFormLayout(replace_group)
+        tab_widget.addTab(pattern_tab, "Find & Replace")
         
-        self.use_replace = QCheckBox("Find and replace text")
-        self.use_replace.toggled.connect(self.update_preview)
-        replace_layout.addRow(self.use_replace)
+        # Case Change Tab
+        case_tab = QWidget()
+        case_layout = QVBoxLayout(case_tab)
         
-        self.find_text = QLineEdit()
-        self.find_text.textChanged.connect(self.update_preview)
-        replace_layout.addRow("Find:", self.find_text)
+        case_group = QGroupBox("Change Case")
+        case_group_layout = QVBoxLayout(case_group)
         
-        self.replace_text = QLineEdit()
-        self.replace_text.textChanged.connect(self.update_preview)
-        replace_layout.addRow("Replace with:", self.replace_text)
-        
-        self.use_regex = QCheckBox("Use regular expressions")
-        self.use_regex.toggled.connect(self.update_preview)
-        replace_layout.addRow(self.use_regex)
-        
-        options_layout.addWidget(replace_group)
-        
-        # Case conversion
-        case_group = QGroupBox("Case Conversion")
-        case_layout = QFormLayout(case_group)
-        
-        self.case_combo = QComboBox()
-        self.case_combo.addItems([
+        self.case_option = QComboBox()
+        self.case_option.addItems([
             "No change",
-            "UPPERCASE", 
-            "lowercase",
+            "UPPERCASE",
+            "lowercase", 
             "Title Case",
             "Sentence case"
         ])
-        self.case_combo.currentTextChanged.connect(self.update_preview)
-        case_layout.addRow("Convert case:", self.case_combo)
+        self.case_option.currentTextChanged.connect(self.update_preview)
+        case_group_layout.addWidget(QLabel("Apply to:"))
+        case_group_layout.addWidget(self.case_option)
         
-        options_layout.addWidget(case_group)
+        case_layout.addWidget(case_group)
+        case_layout.addStretch()
         
-        # Extension handling
-        ext_group = QGroupBox("Extension")
-        ext_layout = QFormLayout(ext_group)
+        tab_widget.addTab(case_tab, "Case Change")
         
-        self.preserve_extension = QCheckBox("Preserve file extension")
-        self.preserve_extension.setChecked(True)
-        self.preserve_extension.toggled.connect(self.update_preview)
-        ext_layout.addRow(self.preserve_extension)
-        
-        options_layout.addWidget(ext_group)
-        
-        splitter.addWidget(options_widget)
+        layout.addWidget(tab_widget)
         
         # Preview section
-        preview_widget = QGroupBox("Preview")
-        preview_layout = QVBoxLayout(preview_widget)
+        preview_group = QGroupBox("Preview")
+        preview_layout = QVBoxLayout(preview_group)
         
-        # Info label
-        self.info_label = QLabel(f"Renaming {len(self.files)} files")
-        self.info_label.setFont(QFont("Arial", 10, QFont.Bold))
-        preview_layout.addWidget(self.info_label)
-        
-        # Preview table
         self.preview_table = QTableWidget()
-        self.preview_table.setColumnCount(3)
-        self.preview_table.setHorizontalHeaderLabels(["Current Name", "New Name", "Status"])
-        self.preview_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.preview_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.preview_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.preview_table.setColumnCount(2)
+        self.preview_table.setHorizontalHeaderLabels(["Original Name", "New Name"])
+        self.preview_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.preview_table.setMaximumHeight(200)
         preview_layout.addWidget(self.preview_table)
         
-        # Pattern help
-        help_text = QTextEdit()
-        help_text.setMaximumHeight(100)
-        help_text.setReadOnly(True)
-        help_text.setHtml("""
-        <b>Pattern Variables:</b><br>
-        • <code>{name}</code> - Original filename (without extension)<br>
-        • <code>{counter}</code> - Sequential number<br>
-        • <code>{counter:03d}</code> - Zero-padded number (001, 002, etc.)<br>
-        • <code>{ext}</code> - File extension<br>
-        • <code>{size}</code> - File size<br>
-        • <code>{date}</code> - Current date (YYYY-MM-DD)
-        """)
-        preview_layout.addWidget(help_text)
+        # Status label
+        self.status_label = QLabel("")
+        preview_layout.addWidget(self.status_label)
         
-        splitter.addWidget(preview_widget)
-        splitter.setSizes([300, 400])
-        layout.addWidget(splitter)
+        layout.addWidget(preview_group)
         
-        # Buttons
+        # Dialog buttons
         button_layout = QHBoxLayout()
         
         self.rename_button = QPushButton("Rename Files")
         self.rename_button.clicked.connect(self.perform_rename)
         
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.clicked.connect(self.reject)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
         
         button_layout.addWidget(self.rename_button)
         button_layout.addStretch()
-        button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(cancel_button)
+        
         layout.addLayout(button_layout)
     
     def update_preview(self):
-        """Update the preview table with new names"""
-        self.preview_names = []
-        conflicts = 0
-        errors = 0
-        
-        self.preview_table.setRowCount(len(self.files))
+        """Update the preview table with renamed files"""
+        new_names = []
+        conflicts = []
         
         for i, file_info in enumerate(self.files):
             original_name = file_info.name
-            try:
-                new_name = self.generate_new_name(file_info, i)
-                
-                # Check for conflicts
-                status = "OK"
-                if new_name in self.preview_names:
-                    status = "⚠️ Duplicate"
-                    conflicts += 1
-                elif new_name == original_name:
-                    status = "No change"
-                elif os.path.exists(os.path.join(os.path.dirname(file_info.path), new_name)):
-                    status = "⚠️ File exists"
-                    conflicts += 1
-                
-                self.preview_names.append(new_name)
-                
-            except Exception as e:
-                new_name = f"ERROR: {str(e)}"
-                status = "❌ Error"
-                errors += 1
+            new_name = self.generate_new_name(file_info, i)
             
-            # Update table
-            self.preview_table.setItem(i, 0, QTableWidgetItem(original_name))
-            self.preview_table.setItem(i, 1, QTableWidgetItem(new_name))
-            self.preview_table.setItem(i, 2, QTableWidgetItem(status))
+            # Check for conflicts
+            if new_name in new_names:
+                conflicts.append(new_name)
+            
+            new_names.append(new_name)
         
-        # Update info label
-        info_text = f"Renaming {len(self.files)} files"
-        if conflicts > 0:
-            info_text += f" - {conflicts} conflicts"
-        if errors > 0:
-            info_text += f" - {errors} errors"
+        # Update preview table
+        self.preview_table.setRowCount(min(len(self.files), 20))  # Show max 20 items
         
-        self.info_label.setText(info_text)
-        self.rename_button.setEnabled(conflicts == 0 and errors == 0)
+        for i in range(min(len(self.files), 20)):
+            original_item = QTableWidgetItem(self.files[i].name)
+            new_item = QTableWidgetItem(new_names[i])
+            
+            # Highlight conflicts
+            if new_names[i] in conflicts:
+                new_item.setBackground(Qt.red)
+                new_item.setForeground(Qt.white)
+            elif new_names[i] != self.files[i].name:
+                new_item.setBackground(Qt.green)
+                new_item.setForeground(Qt.white)
+            
+            self.preview_table.setItem(i, 0, original_item)
+            self.preview_table.setItem(i, 1, new_item)
+        
+        # Update status
+        changed_count = sum(1 for i, name in enumerate(new_names) if name != self.files[i].name)
+        conflict_count = len(set(conflicts))
+        
+        if len(self.files) > 20:
+            status_text = f"Showing 20 of {len(self.files)} files. "
+        else:
+            status_text = ""
+        
+        status_text += f"{changed_count} files will be renamed"
+        
+        if conflict_count > 0:
+            status_text += f", {conflict_count} conflicts detected"
+            self.rename_button.setEnabled(False)
+        else:
+            self.rename_button.setEnabled(changed_count > 0)
+        
+        self.status_label.setText(status_text)
     
     def generate_new_name(self, file_info, index):
-        """Generate new name for a file based on settings"""
-        from datetime import datetime
-        
-        # Start with original name
-        original_name = file_info.name
-        name_without_ext = Path(original_name).stem
-        extension = Path(original_name).suffix
+        """Generate new name for a file based on current settings"""
+        name_without_ext = Path(file_info.name).stem
+        extension = Path(file_info.name).suffix
         
         new_name = name_without_ext
         
-        # Apply pattern renaming
-        if self.use_pattern.isChecked():
-            pattern = self.pattern_edit.text()
-            if pattern.strip():
-                counter = self.start_number.value() + (index * self.step_number.value())
-                
-                # Replace pattern variables
-                new_name = pattern.format(
-                    name=name_without_ext,
-                    counter=counter,
-                    ext=extension.lstrip('.'),
-                    size=file_info.get_size_str(),
-                    date=datetime.now().strftime('%Y-%m-%d')
-                )
-        
         # Apply find and replace
-        if self.use_replace.isChecked():
-            find_text = self.find_text.text()
-            replace_text = self.replace_text.text()
-            
-            if find_text:
-                if self.use_regex.isChecked():
-                    try:
-                        new_name = re.sub(find_text, replace_text, new_name)
-                    except re.error:
-                        raise ValueError("Invalid regular expression")
-                else:
-                    new_name = new_name.replace(find_text, replace_text)
+        if self.find_text.text():
+            if self.case_sensitive.isChecked():
+                new_name = new_name.replace(self.find_text.text(), self.replace_text.text())
+            else:
+                # Case insensitive replace
+                find_text = self.find_text.text().lower()
+                replace_text = self.replace_text.text()
+                name_lower = new_name.lower()
+                
+                result = []
+                start = 0
+                while True:
+                    pos = name_lower.find(find_text, start)
+                    if pos == -1:
+                        result.append(new_name[start:])
+                        break
+                    result.append(new_name[start:pos])
+                    result.append(replace_text)
+                    start = pos + len(find_text)
+                new_name = ''.join(result)
         
-        # Apply case conversion
-        case_option = self.case_combo.currentText()
+        # Apply case change
+        case_option = self.case_option.currentText()
         if case_option == "UPPERCASE":
             new_name = new_name.upper()
         elif case_option == "lowercase":
@@ -268,48 +235,84 @@ class BatchRenameDialog(QDialog):
         elif case_option == "Sentence case":
             new_name = new_name.capitalize()
         
-        # Add extension back
-        if self.preserve_extension.isChecked():
-            new_name += extension
+        # Add numbering
+        if self.add_numbering.isChecked():
+            number = self.start_number.value() + index
+            number_str = str(number).zfill(self.number_padding.value())
+            
+            position = self.number_position.currentText()
+            if position == "Before filename":
+                new_name = f"{number_str}_{new_name}"
+            elif position == "After filename":
+                new_name = f"{new_name}_{number_str}"
+            elif position == "Before extension":
+                new_name = f"{new_name}_{number_str}"
         
-        return new_name
+        return new_name + extension
     
     def perform_rename(self):
         """Perform the actual file renaming"""
-        if not self.preview_names:
+        # Generate all new names
+        new_names = []
+        for i, file_info in enumerate(self.files):
+            new_name = self.generate_new_name(file_info, i)
+            new_names.append(new_name)
+        
+        # Check for conflicts one more time
+        if len(set(new_names)) != len(new_names):
+            QMessageBox.warning(self, "Naming Conflicts", 
+                              "There are naming conflicts. Please adjust your settings.")
             return
         
-        # Final confirmation
+        # Confirm operation
+        changed_count = sum(1 for i, name in enumerate(new_names) if name != self.files[i].name)
+        
         confirm = QMessageBox.question(
-            self, "Confirm Rename",
-            f"Rename {len(self.files)} files?\n\nThis action cannot be undone!",
+            self, "Confirm Batch Rename",
+            f"Rename {changed_count} files?\n\nThis operation cannot be undone.",
             QMessageBox.Yes | QMessageBox.No
         )
         
         if confirm != QMessageBox.Yes:
             return
         
-        # Perform renames
-        success_count = 0
+        # Create progress dialog
+        progress = QProgressDialog("Renaming files...", "Cancel", 0, changed_count, self)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.show()
+        
+        renamed_count = 0
         failed_renames = []
         
         for i, file_info in enumerate(self.files):
+            new_name = new_names[i]
+            
+            if new_name == file_info.name:
+                continue  # Skip files that don't need renaming
+            
+            if progress.wasCanceled():
+                break
+            
+            progress.setValue(renamed_count)
+            progress.setLabelText(f"Renaming: {file_info.name}")
+            
             try:
-                old_path = file_info.path
-                new_name = self.preview_names[i]
-                new_path = os.path.join(os.path.dirname(old_path), new_name)
+                old_path = Path(file_info.path)
+                new_path = old_path.parent / new_name
                 
                 # Rename the file
-                os.rename(old_path, new_path)
+                old_path.rename(new_path)
                 
                 # Update file info
-                file_info.path = new_path
                 file_info.name = new_name
+                file_info.path = str(new_path)
                 
-                success_count += 1
+                renamed_count += 1
                 
             except Exception as e:
                 failed_renames.append((file_info.name, str(e)))
+        
+        progress.close()
         
         # Show results
         if failed_renames:
@@ -319,15 +322,13 @@ class BatchRenameDialog(QDialog):
             
             QMessageBox.warning(
                 self, "Rename Results",
-                f"Rename operation completed.\n\n"
-                f"Successfully renamed: {success_count} files\n"
-                f"Failed to rename: {len(failed_renames)} files\n\n"
-                f"Failed files:\n{failed_list}"
+                f"Successfully renamed {renamed_count} files.\n"
+                f"Failed to rename {len(failed_renames)} files:\n\n{failed_list}"
             )
         else:
             QMessageBox.information(
                 self, "Rename Complete",
-                f"Successfully renamed {success_count} files!"
+                f"Successfully renamed {renamed_count} files."
             )
         
         # Close dialog

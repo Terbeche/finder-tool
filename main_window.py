@@ -18,6 +18,7 @@ from file_category import FileCategory
 from file_scanner_thread import FileScannerThread
 from settings_dialog import SettingsDialog
 from config_manager import ConfigManager
+from theme_manager import theme_manager
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -33,7 +34,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Smart File Manager")
-        self.resize(1000, 700)
+        self.resize(1200, 800)
         
         # Initialize config manager
         self.config_manager = ConfigManager()
@@ -46,6 +47,10 @@ class MainWindow(QMainWindow):
         self.files = []
         self.scanner_thread = None
         
+        # Apply saved theme
+        saved_theme = self.app_settings.get("theme_internal", "light")
+        theme_manager.apply_theme(saved_theme)
+        
         self.setup_ui()
     
     def setup_ui(self):
@@ -53,13 +58,17 @@ class MainWindow(QMainWindow):
         # Main widget and layout
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
+        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(16, 16, 16, 16)
         
         # Search options
         search_group = QGroupBox("Search Options")
         search_layout = QHBoxLayout(search_group)
+        search_layout.setSpacing(12)
         
         # Directory selection
         self.path_edit = QLineEdit(self.current_directory)
+        self.path_edit.setPlaceholderText("Enter directory path or browse...")
         browse_button = QPushButton("Browse...")
         browse_button.clicked.connect(self.browse_directory)
         
@@ -124,6 +133,7 @@ class MainWindow(QMainWindow):
         self.advanced_group.setCheckable(True)
         self.advanced_group.setChecked(False)
         advanced_layout = QVBoxLayout(self.advanced_group)
+        advanced_layout.setSpacing(8)
         
         # Date range filter
         date_layout = QHBoxLayout()
@@ -178,6 +188,7 @@ class MainWindow(QMainWindow):
         clear_layout = QHBoxLayout()
         clear_layout.addStretch()
         self.clear_filters_button = QPushButton("Clear Filters")
+        self.clear_filters_button.setProperty("class", "secondary")
         self.clear_filters_button.clicked.connect(self.clear_advanced_filters)
         clear_layout.addWidget(self.clear_filters_button)
         advanced_layout.addLayout(clear_layout)
@@ -187,6 +198,7 @@ class MainWindow(QMainWindow):
         # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
         main_layout.addWidget(self.progress_bar)
         
         # Results table
@@ -199,6 +211,7 @@ class MainWindow(QMainWindow):
         self.results_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.results_table.customContextMenuRequested.connect(self.show_context_menu)
         self.results_table.setSortingEnabled(True)
+        self.results_table.setAlternatingRowColors(True)
         
         main_layout.addWidget(self.results_table, 1)
         
@@ -687,6 +700,10 @@ class MainWindow(QMainWindow):
                 # Update in-memory settings
                 self.app_settings.update(dialog.app_settings)
                 self.categories = dialog.categories
+                
+                # Apply theme if changed
+                if "theme_internal" in dialog.app_settings:
+                    theme_manager.apply_theme(dialog.app_settings["theme_internal"])
                 
                 # Save directly without threading
                 print("Saving settings to disk...")

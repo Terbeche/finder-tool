@@ -83,7 +83,9 @@ class ConfigManager:
             "auto_discover": True,
             "default_min_size": 0,
             "default_max_depth": 15,
-            "last_directory": str(Path.home())
+            "last_directory": str(Path.home()),
+            "theme": "Light",
+            "theme_internal": "light"
         }
         
         if "settings" not in data:
