@@ -108,8 +108,7 @@ class ThemeManager(QObject):
                 QSpinBox::up-button, QSpinBox::down-button {
                     background-color: #F5F5F5;
                     border: 1px solid #E0E0E0;
-                    width: 20px;
-                    height: 12px;
+                    width: 16px;
                 }
                 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
                     background-color: #E3F2FD;
@@ -118,35 +117,16 @@ class ThemeManager(QObject):
                 QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {
                     background-color: #BBDEFB;
                 }
-                QSpinBox::up-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-bottom: 6px solid #212121;
-                }
-                QSpinBox::down-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #212121;
-                }
                 
                 /* ComboBox dropdown */
                 QComboBox::drop-down {
-                    border: none;
-                    border-left: 1px solid #E0E0E0;
-                    border-radius: 0px 6px 6px 0px;
                     background-color: #F5F5F5;
+                    border: 1px solid #E0E0E0;
                     width: 20px;
                 }
-                QComboBox::down-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #757575;
+                QComboBox::drop-down:hover {
+                    background-color: #E3F2FD;
+                    border-color: #2196F3;
                 }
                 
                 /* Disabled state styling */
@@ -377,8 +357,7 @@ class ThemeManager(QObject):
                 QSpinBox::up-button, QSpinBox::down-button {
                     background-color: #404040;
                     border: 1px solid #333333;
-                    width: 20px;
-                    height: 12px;
+                    width: 16px;
                 }
                 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
                     background-color: #505050;
@@ -387,35 +366,16 @@ class ThemeManager(QObject):
                 QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {
                     background-color: #606060;
                 }
-                QSpinBox::up-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-bottom: 6px solid #FFFFFF;
-                }
-                QSpinBox::down-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #FFFFFF;
-                }
                 
                 /* ComboBox dropdown */
                 QComboBox::drop-down {
-                    border: none;
-                    border-left: 1px solid #333333;
-                    border-radius: 0px 6px 6px 0px;
                     background-color: #404040;
+                    border: 1px solid #333333;
                     width: 20px;
                 }
-                QComboBox::down-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #B3B3B3;
+                QComboBox::drop-down:hover {
+                    background-color: #505050;
+                    border-color: #BB86FC;
                 }
                 
                 /* Disabled state styling */
@@ -428,18 +388,9 @@ class ThemeManager(QObject):
                     background-color: #1A1A1A;
                     border-color: #2A2A2A;
                 }
-                QSpinBox::up-arrow:disabled {
-                    border-bottom-color: #555555;
-                }
-                QSpinBox::down-arrow:disabled {
-                    border-top-color: #555555;
-                }
                 QComboBox::drop-down:disabled {
                     background-color: #1A1A1A;
                     border-color: #2A2A2A;
-                }
-                QComboBox::down-arrow:disabled {
-                    border-top-color: #555555;
                 }
                 QCheckBox:disabled {
                     color: #555555;
@@ -718,8 +669,7 @@ class ThemeManager(QObject):
                 QSpinBox::up-button, QSpinBox::down-button {
                     background-color: #E8F5E8;
                     border: 1px solid #A5D6A7;
-                    width: 20px;
-                    height: 12px;
+                    width: 16px;
                 }
                 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
                     background-color: #C8E6C9;
@@ -728,35 +678,16 @@ class ThemeManager(QObject):
                 QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {
                     background-color: #A5D6A7;
                 }
-                QSpinBox::up-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-bottom: 6px solid #1B5E20;
-                }
-                QSpinBox::down-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #1B5E20;
-                }
                 
                 /* ComboBox dropdown */
                 QComboBox::drop-down {
-                    border: none;
-                    border-left: 1px solid #A5D6A7;
-                    border-radius: 0px 8px 8px 0px;
                     background-color: #E8F5E8;
+                    border: 1px solid #A5D6A7;
                     width: 20px;
                 }
-                QComboBox::down-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #2E7D32;
+                QComboBox::drop-down:hover {
+                    background-color: #C8E6C9;
+                    border-color: #4CAF50;
                 }
                 
                 /* Disabled state styling */
@@ -769,18 +700,9 @@ class ThemeManager(QObject):
                     background-color: #F0F0F0;
                     border-color: #C8E6C9;
                 }
-                QSpinBox::up-arrow:disabled {
-                    border-bottom-color: #A5D6A7;
-                }
-                QSpinBox::down-arrow:disabled {
-                    border-top-color: #A5D6A7;
-                }
                 QComboBox::drop-down:disabled {
                     background-color: #F0F0F0;
                     border-color: #C8E6C9;
-                }
-                QComboBox::down-arrow:disabled {
-                    border-top-color: #A5D6A7;
                 }
                 QCheckBox:disabled {
                     color: #A5D6A7;
