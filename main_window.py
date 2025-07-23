@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLabel, QLineEdit, QComboBox, QSpinBox,
     QMessageBox, QMenu, QProgressBar, QGroupBox, QAbstractItemView,
-    QCheckBox, QDateEdit, QDialog, QFormLayout, QDialogButtonBox
+    QCheckBox, QDateEdit, QDialog, QFormLayout, QDialogButtonBox, QSplitter
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QAction, QColor
@@ -20,6 +20,7 @@ from settings_dialog import SettingsDialog
 from config_manager import ConfigManager
 from theme_manager import theme_manager
 from bookmark_manager import BookmarkManager
+from preview_panel import PreviewPanel
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -243,6 +244,9 @@ class MainWindow(QMainWindow):
         self.progress_bar.setTextVisible(True)
         main_layout.addWidget(self.progress_bar)
         
+        # Main content area with splitter for results and preview
+        content_splitter = QSplitter(Qt.Horizontal)
+        
         # Results table
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(6)
@@ -255,7 +259,21 @@ class MainWindow(QMainWindow):
         self.results_table.setSortingEnabled(True)
         self.results_table.setAlternatingRowColors(True)
         
-        main_layout.addWidget(self.results_table, 1)
+        # Connect selection change to preview
+        self.results_table.selectionModel().selectionChanged.connect(self.on_file_selection_changed)
+        
+        content_splitter.addWidget(self.results_table)
+        
+        # Preview panel
+        self.preview_panel = PreviewPanel()
+        content_splitter.addWidget(self.preview_panel)
+        
+        # Set splitter proportions (70% for table, 30% for preview)
+        content_splitter.setSizes([700, 300])
+        content_splitter.setCollapsible(0, False)  # Don't allow table to be collapsed
+        content_splitter.setCollapsible(1, True)   # Allow preview panel to be collapsed
+        
+        main_layout.addWidget(content_splitter, 1)
         
         # Status bar with counts
         self.file_count_label = QLabel("0 files found")
@@ -356,6 +374,12 @@ class MainWindow(QMainWindow):
         # Bookmark actions
         self.bookmark_manager_action = QAction("Manage Bookmarks...", self)
         self.bookmark_manager_action.triggered.connect(self.open_bookmark_manager)
+        
+        # View menu actions
+        self.toggle_preview_action = QAction("Toggle Preview Panel", self)
+        self.toggle_preview_action.setCheckable(True)
+        self.toggle_preview_action.setChecked(True)
+        self.toggle_preview_action.triggered.connect(self.toggle_preview_panel)
     def create_menu(self):
         """Create application menu"""
         menu_bar = self.menuBar()
@@ -393,6 +417,10 @@ class MainWindow(QMainWindow):
         # Help menu
         help_menu = menu_bar.addMenu("Help")
         help_menu.addAction(self.about_action)
+        
+        # View menu
+        view_menu = menu_bar.addMenu("View")
+        view_menu.addAction(self.toggle_preview_action)
     
     def browse_directory(self):
         """Open directory browser dialog"""
@@ -1188,3 +1216,58 @@ class MainWindow(QMainWindow):
         dialog = BookmarkDialog(self.bookmark_manager, self, self)
         dialog.exec()
         self.update_bookmark_buttons()  # Refresh after closing
+    
+    def on_file_selection_changed(self, selected, deselected):
+        """Handle file selection change to update preview"""
+        selected_indexes = self.results_table.selectionModel().selectedRows()
+        
+        if selected_indexes:
+            row = selected_indexes[0].row()
+            if row < len(self.files):
+                file_info = self.files[row]
+                self.preview_panel.preview_file(file_info)
+        else:
+            self.preview_panel.clear_preview()
+    
+    def toggle_preview_panel(self, checked):
+        """Toggle the preview panel visibility"""
+        self.preview_panel.setVisible(checked)
+        
+        # Update splitter sizes when hiding/showing preview
+        if checked:
+            # Show preview panel
+            splitter = self.preview_panel.parent()
+            if isinstance(splitter, QSplitter):
+                splitter.setSizes([700, 300])
+        else:
+            # Hide preview panel  
+            splitter = self.preview_panel.parent()
+            if isinstance(splitter, QSplitter):
+                splitter.setSizes([1000, 0])
+    
+    def open_file_by_path(self, file_path):
+        """Open a file by its path (called from preview panel)"""
+        try:
+            if platform.system() == 'Windows':
+                os.startfile(file_path)
+            elif platform.system() == 'Darwin':  # macOS
+                subprocess.run(['open', file_path])
+            else:  # Linux
+                subprocess.run(['xdg-open', file_path])
+        except Exception as e:
+            QMessageBox.warning(self, "Error Opening File", str(e))
+    
+    def open_folder_by_path(self, file_path):
+        """Open the folder containing a file (called from preview panel)"""
+        parent_dir = os.path.dirname(file_path)
+        
+        try:
+            if platform.system() == 'Windows':
+                # Open Explorer and select the file
+                subprocess.run(['explorer', '/select,', file_path])
+            elif platform.system() == 'Darwin':  # macOS
+                subprocess.run(['open', parent_dir])
+            else:  # Linux
+                subprocess.run(['xdg-open', parent_dir])
+        except Exception as e:
+            QMessageBox.warning(self, "Error Opening Folder", str(e))
