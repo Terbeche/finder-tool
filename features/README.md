@@ -14,6 +14,8 @@ This folder contains detailed documentation for each feature implemented in the 
 - **[05-duplicate-detection.md](05-duplicate-detection.md)** - Multi-method duplicate file detection and management
 - **[06-advanced-search-filters.md](06-advanced-search-filters.md)** - Date ranges, filename patterns, content search
 - **[07-batch-rename-tool.md](07-batch-rename-tool.md)** - Pattern-based batch file renaming with preview
+- **[08-bookmark-system.md](08-bookmark-system.md)** - Save frequently used directories and search presets
+- **[09-file-preview-panel.md](09-file-preview-panel.md)** - Image thumbnails and text file content preview
 
 ## Feature Status Overview
 
@@ -26,17 +28,17 @@ This folder contains detailed documentation for each feature implemented in the 
 | Duplicate Detection | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 | Advanced Search Filters | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
 | Batch Rename Tool | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
+| Bookmark System | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
+| File Preview Panel | ✅ Complete | ✅ Done | ⏳ Testing | ✅ Documented |
 
 ## Planned Features (Not Yet Implemented)
 
 ### Next Priority
-- **File Preview Panel** - Thumbnails and previews for images, text files
-- **Media Intelligence** - Video quality analysis, codec identification
-- **Bookmark System** - Save frequently used search locations and filters
-- **Search History** - Track and replay previous searches
+- **Media Intelligence** - Video quality analysis, codec identification, metadata extraction
+- **Search History** - Track and replay previous searches with timestamps
+- **Cloud Integration** - Compare local vs cloud files, migration suggestions
 
 ### Future Enhancements
-- **Cloud Integration** - Compare local vs cloud files, migration suggestions
 - **Security Features** - File integrity checking, suspicious file detection
 - **System Integration** - Context menus, scheduled scans, startup integration
 - **Usage Analytics** - File access patterns and storage optimization suggestions
@@ -88,6 +90,20 @@ Each feature document includes:
 - Added find/replace functionality with regex support
 - Included case conversion and extension handling options
 - Created intuitive UI with help documentation
+
+### Version 1.8 - Bookmark System
+- Added directory bookmarks with usage tracking
+- Implemented search preset saving and loading
+- Created quick access panel with most-used bookmarks
+- Added comprehensive bookmark management dialog
+- Integrated one-click save buttons for locations and searches
+
+### Version 1.9 - File Preview Panel
+- Added image thumbnail preview with scaling
+- Implemented text file content preview (first 10KB)
+- Created file properties display with metadata
+- Added preview panel toggle and splitter layout
+- Integrated preview with file selection in results table
 
 ## Updating Documentation
 
