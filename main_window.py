@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLabel, QLineEdit, QComboBox, QSpinBox,
     QMessageBox, QMenu, QProgressBar, QGroupBox, QAbstractItemView,
-    QCheckBox, QDateEdit
+    QCheckBox, QDateEdit, QDialog, QFormLayout, QDialogButtonBox
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QAction, QColor
@@ -19,6 +19,7 @@ from file_scanner_thread import FileScannerThread
 from settings_dialog import SettingsDialog
 from config_manager import ConfigManager
 from theme_manager import theme_manager
+from bookmark_manager import BookmarkManager
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -38,6 +39,9 @@ class MainWindow(QMainWindow):
         
         # Initialize config manager
         self.config_manager = ConfigManager()
+        
+        # Initialize bookmark manager
+        self.bookmark_manager = BookmarkManager(self.config_manager)
         
         # Load settings
         self.app_settings = self.config_manager.load_settings()
@@ -61,10 +65,47 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(12)
         main_layout.setContentsMargins(16, 16, 16, 16)
         
-        # Search options
+        # Search options with bookmark panel
         search_group = QGroupBox("Search Options")
-        search_layout = QHBoxLayout(search_group)
-        search_layout.setSpacing(12)
+        search_layout = QVBoxLayout(search_group)
+        search_layout.setSpacing(8)
+        
+        # Quick Access Bookmarks Panel
+        bookmarks_panel = QGroupBox("Quick Access")
+        bookmarks_layout = QHBoxLayout(bookmarks_panel)
+        bookmarks_layout.setSpacing(8)
+        
+        # Recent bookmarks buttons (max 5)
+        self.bookmark_buttons = []
+        for i in range(5):
+            btn = QPushButton("Empty")
+            btn.setVisible(False)
+            btn.clicked.connect(lambda checked, idx=i: self.use_quick_bookmark(idx))
+            self.bookmark_buttons.append(btn)
+            bookmarks_layout.addWidget(btn)
+        
+        # Manage bookmarks button
+        manage_bookmarks_btn = QPushButton("Manage Bookmarks...")
+        manage_bookmarks_btn.clicked.connect(self.open_bookmark_manager)
+        bookmarks_layout.addWidget(manage_bookmarks_btn)
+        
+        # Quick save buttons
+        save_location_btn = QPushButton("📍 Save Location")
+        save_location_btn.setToolTip("Save current directory as bookmark")
+        save_location_btn.clicked.connect(self.quick_save_location)
+        
+        save_search_btn = QPushButton("💾 Save Search")
+        save_search_btn.setToolTip("Save current search settings as preset")
+        save_search_btn.clicked.connect(self.quick_save_search)
+        
+        bookmarks_layout.addWidget(save_location_btn)
+        bookmarks_layout.addWidget(save_search_btn)
+        bookmarks_layout.addStretch()
+        
+        search_layout.addWidget(bookmarks_panel)
+        
+        # Main search controls
+        main_search_layout = QHBoxLayout()
         
         # Directory selection
         self.path_edit = QLineEdit(self.current_directory)
@@ -72,9 +113,9 @@ class MainWindow(QMainWindow):
         browse_button = QPushButton("Browse...")
         browse_button.clicked.connect(self.browse_directory)
         
-        search_layout.addWidget(QLabel("Directory:"))
-        search_layout.addWidget(self.path_edit, 1)
-        search_layout.addWidget(browse_button)
+        main_search_layout.addWidget(QLabel("Directory:"))
+        main_search_layout.addWidget(self.path_edit, 1)
+        main_search_layout.addWidget(browse_button)
         
         # File type selection
         self.category_combo = QComboBox()
@@ -82,8 +123,8 @@ class MainWindow(QMainWindow):
         for category in self.categories:
             self.category_combo.addItem(category.name)
         
-        search_layout.addWidget(QLabel("File Type:"))
-        search_layout.addWidget(self.category_combo)
+        main_search_layout.addWidget(QLabel("File Type:"))
+        main_search_layout.addWidget(self.category_combo)
         
         # Size filters
         self.min_size = QSpinBox()
@@ -97,35 +138,36 @@ class MainWindow(QMainWindow):
         self.max_size.setSuffix(" MB")
         self.max_size.setSpecialValueText("No Limit")
         
-        search_layout.addWidget(QLabel("Size:"))
-        search_layout.addWidget(self.min_size)
-        search_layout.addWidget(QLabel("to"))
-        search_layout.addWidget(self.max_size)
+        main_search_layout.addWidget(QLabel("Size:"))
+        main_search_layout.addWidget(self.min_size)
+        main_search_layout.addWidget(QLabel("to"))
+        main_search_layout.addWidget(self.max_size)
         
         # Depth setting
         self.max_depth = QSpinBox()
         self.max_depth.setRange(1, 100)
         self.max_depth.setValue(self.app_settings.get("default_max_depth", 15))
-        search_layout.addWidget(QLabel("Max Depth:"))
-        search_layout.addWidget(self.max_depth)
+        main_search_layout.addWidget(QLabel("Max Depth:"))
+        main_search_layout.addWidget(self.max_depth)
         
         # Search button
         self.search_button = QPushButton("Search Files")
         self.search_button.clicked.connect(self.start_search)
-        search_layout.addWidget(self.search_button)
+        main_search_layout.addWidget(self.search_button)
         
         # Add pause/resume button
         self.pause_button = QPushButton("Pause")
         self.pause_button.clicked.connect(self.toggle_pause_scan)
         self.pause_button.setEnabled(False)
-        search_layout.addWidget(self.pause_button)
+        main_search_layout.addWidget(self.pause_button)
         
         # Add stop button
         self.stop_button = QPushButton("Stop")
         self.stop_button.clicked.connect(self.stop_scan)
         self.stop_button.setEnabled(False)
-        search_layout.addWidget(self.stop_button)
+        main_search_layout.addWidget(self.stop_button)
         
+        search_layout.addLayout(main_search_layout)
         main_layout.addWidget(search_group)
         
         # Advanced Filters (Collapsible)
@@ -310,7 +352,10 @@ class MainWindow(QMainWindow):
         # Help menu actions
         self.about_action = QAction("About", self)
         self.about_action.triggered.connect(self.show_about)
-    
+        
+        # Bookmark actions
+        self.bookmark_manager_action = QAction("Manage Bookmarks...", self)
+        self.bookmark_manager_action.triggered.connect(self.open_bookmark_manager)
     def create_menu(self):
         """Create application menu"""
         menu_bar = self.menuBar()
@@ -331,6 +376,10 @@ class MainWindow(QMainWindow):
         tools_menu = menu_bar.addMenu("Tools")
         tools_menu.addAction(self.duplicate_action)
         tools_menu.addAction(self.batch_rename_action)
+        
+        # Add bookmarks to Tools menu
+        tools_menu.addSeparator()
+        tools_menu.addAction(self.bookmark_manager_action)
         
         # Actions menu
         actions_menu = menu_bar.addMenu("Actions")
@@ -1020,3 +1069,122 @@ class MainWindow(QMainWindow):
         from duplicate_dialog import DuplicateDialog
         dialog = DuplicateDialog(self.files, self)
         dialog.exec()
+    
+    def update_bookmark_buttons(self):
+        """Update the quick access bookmark buttons"""
+        bookmarks = self.bookmark_manager.get_bookmarks()[:5]  # Top 5 most used
+        
+        for i, btn in enumerate(self.bookmark_buttons):
+            if i < len(bookmarks):
+                bookmark = bookmarks[i]
+                btn.setText(bookmark.name)
+                btn.setToolTip(f"{bookmark.path}\n{bookmark.description}" if bookmark.description else bookmark.path)
+                btn.setVisible(True)
+            else:
+                btn.setVisible(False)
+    
+    def use_quick_bookmark(self, index):
+        """Use a quick access bookmark"""
+        bookmarks = self.bookmark_manager.get_bookmarks()
+        if index < len(bookmarks):
+            bookmark = bookmarks[index]
+            self.path_edit.setText(bookmark.path)
+            self.current_directory = bookmark.path
+            self.bookmark_manager.use_bookmark(bookmark.path)
+            self.update_bookmark_buttons()  # Refresh order based on usage
+    
+    def quick_save_location(self):
+        """Quick save current directory as bookmark"""
+        directory = self.path_edit.text()
+        if not directory or not os.path.exists(directory):
+            QMessageBox.warning(self, "Invalid Directory", "Please select a valid directory first.")
+            return
+        
+        # Generate a default name
+        default_name = Path(directory).name or "Root"
+        
+        name, ok = QLineEdit().text(), True
+        # Simple input dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Save Location Bookmark")
+        layout = QFormLayout(dialog)
+        
+        name_edit = QLineEdit(default_name)
+        desc_edit = QLineEdit()
+        desc_edit.setPlaceholderText("Optional description...")
+        
+        layout.addRow("Bookmark Name:", name_edit)
+        layout.addRow("Description:", desc_edit)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec():
+            name = name_edit.text().strip()
+            description = desc_edit.text().strip()
+            
+            if name and self.bookmark_manager.add_bookmark(name, directory, description):
+                QMessageBox.information(self, "Bookmark Saved", f"Location saved as '{name}'")
+                self.update_bookmark_buttons()
+            elif not name:
+                QMessageBox.warning(self, "Invalid Name", "Please enter a bookmark name.")
+            else:
+                QMessageBox.warning(self, "Duplicate Bookmark", "This location is already bookmarked.")
+    
+    def quick_save_search(self):
+        """Quick save current search settings as preset"""
+        # Simple input dialog for preset name
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Save Search Preset")
+        layout = QFormLayout(dialog)
+        
+        name_edit = QLineEdit()
+        name_edit.setPlaceholderText("Enter preset name...")
+        desc_edit = QLineEdit()
+        desc_edit.setPlaceholderText("Optional description...")
+        
+        layout.addRow("Preset Name:", name_edit)
+        layout.addRow("Description:", desc_edit)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec():
+            name = name_edit.text().strip()
+            description = desc_edit.text().strip()
+            
+            if name:
+                search_config = self.get_current_search_config()
+                if self.bookmark_manager.add_preset(name, search_config, description):
+                    QMessageBox.information(self, "Preset Saved", f"Search settings saved as '{name}'")
+                else:
+                    QMessageBox.warning(self, "Duplicate Preset", "A preset with this name already exists.")
+            else:
+                QMessageBox.warning(self, "Invalid Name", "Please enter a preset name.")
+    
+    def get_current_search_config(self):
+        """Extract current search configuration"""
+        return {
+            "category": self.category_combo.currentText(),
+            "min_size": self.min_size.value(),
+            "max_size": self.max_size.value(),
+            "max_depth": self.max_depth.value(),
+            "date_filter_enabled": self.date_filter_enabled.isChecked(),
+            "date_from": self.date_from.date().toString("yyyy-MM-dd") if self.date_filter_enabled.isChecked() else None,
+            "date_to": self.date_to.date().toString("yyyy-MM-dd") if self.date_filter_enabled.isChecked() else None,
+            "pattern_filter_enabled": self.pattern_filter_enabled.isChecked(),
+            "filename_pattern": self.pattern_edit.text(),
+            "content_filter_enabled": self.content_filter_enabled.isChecked(),
+            "content_search": self.content_edit.text()
+        }
+    
+    def open_bookmark_manager(self):
+        """Open the bookmark manager dialog"""
+        from bookmark_dialog import BookmarkDialog
+        dialog = BookmarkDialog(self.bookmark_manager, self, self)
+        dialog.exec()
+        self.update_bookmark_buttons()  # Refresh after closing
