@@ -8,6 +8,8 @@ from pathlib import Path
 import os
 from media_intelligence import get_video_metadata, get_audio_metadata
 from cloud_integration import compare_files, suggest_migration, list_local_files, list_cloud_files
+import hashlib
+import tempfile
 
 class ImageLoaderThread(QThread):
     """Thread for loading images without blocking UI"""
@@ -171,6 +173,21 @@ class PreviewPanel(QWidget):
             self.preview_audio(file_info.path)
         else:
             self.show_no_preview(extension)
+        
+        # Security checks
+        warning_msgs = []
+        if not self.check_file_integrity(file_info.path):
+            warning_msgs.append("⚠️ File integrity check failed or file is unreadable.")
+        suspicious = self.check_suspicious_file(file_info.path, file_info.name, file_info.extension)
+        if suspicious:
+            warning_msgs.append(f"⚠️ Suspicious file: {suspicious}")
+        
+        # Show warning if any
+        if warning_msgs:
+            self.image_label.setText("\n".join(warning_msgs) + "\n\n" + self.image_label.text())
+            self.open_button.setEnabled(False)
+        else:
+            self.open_button.setEnabled(True)
     
     def is_image_file(self, extension):
         """Check if file is a supported image format"""
@@ -523,3 +540,49 @@ class PreviewPanel(QWidget):
         else:
             msg = "No files found for migration (all files are already in cloud or below threshold)."
         QMessageBox.information(self, "Cloud Migration Suggestions", msg)
+    
+    def check_file_integrity(self, file_path):
+        """Check if file is readable and calculate hash (basic integrity check)"""
+        try:
+            # Only check files smaller than 100MB for performance
+            if os.path.getsize(file_path) > 100 * 1024 * 1024:
+                return True
+            with open(file_path, "rb") as f:
+                hasher = hashlib.sha256()
+                while True:
+                    chunk = f.read(8192)
+                    if not chunk:
+                        break
+                    hasher.update(chunk)
+                # Optionally, store/display hash
+                self.file_hash = hasher.hexdigest()
+            return True
+        except Exception:
+            self.file_hash = None
+            return False
+
+    def check_suspicious_file(self, file_path, file_name, extension):
+        """Detect suspicious files by extension, location, or size"""
+        # Double extension (e.g., .jpg.exe)
+        parts = file_name.lower().split('.')
+        if len(parts) > 2 and parts[-1] in {"exe", "bat", "cmd", "scr"}:
+            return "Double extension (e.g., .jpg.exe)"
+        # Executable in non-standard location
+        if extension in {"exe", "bat", "cmd", "scr"}:
+            sysdirs = [os.environ.get("SystemRoot", ""), "/bin", "/usr/bin", "/usr/local/bin"]
+            if not any(file_path.startswith(d) for d in sysdirs if d):
+                return "Executable file outside system directories"
+        # File in temp/system directory
+        tempdirs = [tempfile.gettempdir(), "/tmp", "/var/tmp"]
+        if any(file_path.startswith(d) for d in tempdirs if d):
+            return "File in temporary directory"
+        # Zero size or extremely large
+        try:
+            size = os.path.getsize(file_path)
+            if size == 0:
+                return "Zero-size file"
+            if size > 10 * 1024 * 1024 * 1024:  # >10GB
+                return "Unusually large file"
+        except Exception:
+            return "Unreadable file"
+        return None

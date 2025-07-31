@@ -19,6 +19,7 @@ This folder contains detailed documentation for each feature implemented in the 
 - **[10-search-history.md](10-search-history.md)** - Track and replay previous searches with timestamps
 - **[11-media-intelligence.md](11-media-intelligence.md)** - Video/audio metadata extraction and preview
 - **[12-cloud-integration.md](12-cloud-integration.md)** - Compare local vs cloud files, migration suggestions
+- **[13-security-features.md](13-security-features.md)** - File integrity checking, suspicious file detection
 
 ## Feature Status Overview
 
@@ -36,11 +37,11 @@ This folder contains detailed documentation for each feature implemented in the 
 | Search History       | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 | Media Intelligence   | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 | Cloud Integration    | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Security Features    | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 
 ## Planned Features (Not Yet Implemented)
 
 ### Next Priority
-- **Security Features** - File integrity checking, suspicious file detection
 - **System Integration** - Context menus, scheduled scans, startup integration
 - **Usage Analytics** - File access patterns and storage optimization suggestions
 
