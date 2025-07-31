@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, QSize, QThread, Signal
 from PySide6.QtGui import QPixmap, QFont, QTextCursor
 from pathlib import Path
 import os
+from media_intelligence import get_video_metadata
 
 class ImageLoaderThread(QThread):
     """Thread for loading images without blocking UI"""
@@ -157,6 +158,8 @@ class PreviewPanel(QWidget):
             self.preview_image(file_info.path)
         elif self.is_text_file(extension):
             self.preview_text(file_info.path)
+        elif extension in {"mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"}:
+            self.preview_video(file_info.path)
         else:
             self.show_no_preview(extension)
     
@@ -251,6 +254,24 @@ class PreviewPanel(QWidget):
         except Exception as e:
             self.text_preview.setPlainText(f"Error reading file:\n{str(e)}")
             self.text_preview.setVisible(True)
+    
+    def preview_video(self, file_path):
+        """Preview video file metadata"""
+        self.image_label.setText("🎥 Video file\n\nExtracting metadata...")
+        self.text_preview.setVisible(False)
+        metadata = get_video_metadata(file_path)
+        if metadata:
+            info = [
+                f"Codec: {metadata['video_codec']}",
+                f"Resolution: {metadata['width']} x {metadata['height']}",
+                f"Duration: {metadata['duration']:.1f} sec",
+                f"Bitrate: {metadata['bit_rate'] // 1000} kbps",
+                f"Frame Rate: {metadata['frame_rate']}",
+                f"Audio Codec: {metadata['audio_codec']}"
+            ]
+            self.image_label.setText("🎥 Video file\n\n" + "\n".join(info))
+        else:
+            self.image_label.setText("🎥 Video file\n\nNo metadata available (ffprobe required)")
     
     def show_no_preview(self, extension):
         """Show message for files that can't be previewed"""
