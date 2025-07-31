@@ -21,6 +21,7 @@ from config_manager import ConfigManager
 from theme_manager import theme_manager
 from bookmark_manager import BookmarkManager
 from preview_panel import PreviewPanel
+from search_history_manager import SearchHistoryManager
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -43,6 +44,9 @@ class MainWindow(QMainWindow):
         
         # Initialize bookmark manager
         self.bookmark_manager = BookmarkManager(self.config_manager)
+        
+        # Initialize search history manager
+        self.search_history_manager = SearchHistoryManager(self.config_manager)
         
         # Load settings
         self.app_settings = self.config_manager.load_settings()
@@ -380,6 +384,11 @@ class MainWindow(QMainWindow):
         self.toggle_preview_action.setCheckable(True)
         self.toggle_preview_action.setChecked(True)
         self.toggle_preview_action.triggered.connect(self.toggle_preview_panel)
+        
+        # Search history actions
+        self.search_history_action = QAction("Search History...", self)
+        self.search_history_action.triggered.connect(self.open_search_history)
+    
     def create_menu(self):
         """Create application menu"""
         menu_bar = self.menuBar()
@@ -404,6 +413,9 @@ class MainWindow(QMainWindow):
         # Add bookmarks to Tools menu
         tools_menu.addSeparator()
         tools_menu.addAction(self.bookmark_manager_action)
+        
+        # Add search history to Tools menu
+        tools_menu.addAction(self.search_history_action)
         
         # Actions menu
         actions_menu = menu_bar.addMenu("Actions")
@@ -437,6 +449,10 @@ class MainWindow(QMainWindow):
     
     def start_search(self):
         """Start file search operation"""
+        # Record search start time
+        from time import time
+        search_start_time = time()
+        
         # Get search parameters
         directory = self.path_edit.text()
         if not os.path.exists(directory):
@@ -486,6 +502,23 @@ class MainWindow(QMainWindow):
         self.scanner_thread.file_found.connect(self.add_file_to_results)
         self.scanner_thread.scan_complete.connect(self.scan_complete)
         self.scanner_thread.start()
+        
+        # Store search configuration for history
+        self.current_search_config = {
+            "directory": directory,
+            "category": self.category_combo.currentText(),
+            "min_size": self.min_size.value(),
+            "max_size": self.max_size.value(),
+            "max_depth": self.max_depth.value(),
+            "date_filter_enabled": self.date_filter_enabled.isChecked(),
+            "date_from": self.date_from.date().toString("yyyy-MM-dd") if self.date_filter_enabled.isChecked() else None,
+            "date_to": self.date_to.date().toString("yyyy-MM-dd") if self.date_filter_enabled.isChecked() else None,
+            "pattern_filter_enabled": self.pattern_filter_enabled.isChecked(),
+            "filename_pattern": self.pattern_edit.text(),
+            "content_filter_enabled": self.content_filter_enabled.isChecked(),
+            "content_search": self.content_edit.text()
+        }
+        self.search_start_time = search_start_time
     
     def update_progress(self, current, total):
         """Update progress bar during scanning"""
@@ -520,6 +553,26 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
         self.statusBar().showMessage(f"Scan complete. Found {len(files)} files.")
         
+        # Record search completion and add to history
+        from time import time
+        search_duration = time() - getattr(self, 'search_start_time', time())
+        
+        # Calculate total size
+        total_size = sum(f.size for f in self.files)
+        
+        # Add search to history
+        results_summary = {
+            "files_found": len(files),
+            "total_size": total_size,
+            "search_duration": search_duration
+        }
+        
+        if hasattr(self, 'current_search_config'):
+            self.search_history_manager.add_search(
+                self.current_search_config,
+                results_summary
+            )
+    
         # Check for new file extensions
         if self.app_settings.get("auto_discover", True) and self.files:
             self.check_for_new_extensions()
@@ -1216,6 +1269,12 @@ class MainWindow(QMainWindow):
         dialog = BookmarkDialog(self.bookmark_manager, self, self)
         dialog.exec()
         self.update_bookmark_buttons()  # Refresh after closing
+    
+    def open_search_history(self):
+        """Open the search history dialog"""
+        from search_history_dialog import SearchHistoryDialog
+        dialog = SearchHistoryDialog(self.search_history_manager, self, self)
+        dialog.exec()
     
     def on_file_selection_changed(self, selected, deselected):
         """Handle file selection change to update preview"""
