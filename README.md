@@ -22,6 +22,7 @@ A powerful tool for finding and organizing files on your system with advanced se
 - **Bookmark System**: Save frequently used directories and complex search configurations
 - **Search Presets**: Store and recall complex search filter combinations
 - **Quick Access Panel**: One-click access to most-used locations
+- **Search History**: Track and replay previous searches with timestamps and results summary
 - **Cross-platform Support**: Works on Windows, macOS, and Linux
 
 ### User Interface
@@ -146,6 +147,12 @@ python main.py
 3. Choose detection method (Speed vs. Accuracy)
 4. Review duplicate groups and select files to remove
 5. Safely delete duplicates to reclaim space
+
+### Search History
+1. **Perform searches** as usual
+2. **Open Search History**: Go to Tools → "Search History..."
+3. **Review previous searches**: See parameters, results, and timestamps
+4. **Replay searches**: Select an entry and click "Replay Search" to repeat with the same filters
 
 ## Examples
 

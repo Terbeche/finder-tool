@@ -16,26 +16,27 @@ This folder contains detailed documentation for each feature implemented in the 
 - **[07-batch-rename-tool.md](07-batch-rename-tool.md)** - Pattern-based batch file renaming with preview
 - **[08-bookmark-system.md](08-bookmark-system.md)** - Save frequently used directories and search presets
 - **[09-file-preview-panel.md](09-file-preview-panel.md)** - Image thumbnails and text file content preview
+- **[10-search-history.md](10-search-history.md)** - Track and replay previous searches with timestamps
 
 ## Feature Status Overview
 
-| Feature | Status | Implementation | Testing | Documentation |
-|---------|--------|----------------|---------|---------------|
-| File Scanning | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| File Categorization | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| File Operations | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| Data Export | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| Duplicate Detection | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| Advanced Search Filters | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| Batch Rename Tool | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| Bookmark System | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
-| File Preview Panel | ✅ Complete | ✅ Done | ✅ Tested | ✅ Documented |
+| Feature              | Status      | Implementation | Testing     | Documentation   |
+|----------------------|------------|----------------|-------------|-----------------|
+| File Scanning        | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| File Categorization  | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| File Operations      | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Data Export          | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Duplicate Detection  | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Advanced Search Filters | ✅ Complete | ✅ Done     | ✅ Tested    | ✅ Documented   |
+| Batch Rename Tool    | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Bookmark System      | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| File Preview Panel   | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Search History       | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 
 ## Planned Features (Not Yet Implemented)
 
 ### Next Priority
 - **Media Intelligence** - Video quality analysis, codec identification, metadata extraction
-- **Search History** - Track and replay previous searches with timestamps
 - **Cloud Integration** - Compare local vs cloud files, migration suggestions
 
 ### Future Enhancements
@@ -102,8 +103,15 @@ Each feature document must include:
 2. Use testing instructions as user guides
 3. Reference troubleshooting sections for common issues
 4. Understand limitations and workarounds
+5. **Use Search History to review and repeat previous searches**
 
 ## Recent Updates
+
+### Version 2.1 - Search History
+- Added search history tracking with timestamps and results summary
+- Implemented search replay functionality
+- Created search history dialog with filtering and details
+- Integrated search history with main window and menu
 
 ### Version 2.0 - File Preview Panel
 - Added comprehensive file preview system
