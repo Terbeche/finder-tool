@@ -7,6 +7,7 @@ from PySide6.QtGui import QPixmap, QFont, QTextCursor
 from pathlib import Path
 import os
 from media_intelligence import get_video_metadata, get_audio_metadata
+from cloud_integration import compare_files, suggest_migration, list_local_files, list_cloud_files
 
 class ImageLoaderThread(QThread):
     """Thread for loading images without blocking UI"""
@@ -114,9 +115,15 @@ class PreviewPanel(QWidget):
         self.open_folder_button = QPushButton("Open Folder")
         self.open_folder_button.setEnabled(False)
         self.open_folder_button.clicked.connect(self.open_containing_folder)
+
+        # Cloud migration button
+        self.cloud_migration_button = QPushButton("Cloud Migration Suggestions")
+        self.cloud_migration_button.setToolTip("Compare local and cloud folders and suggest files for migration")
+        self.cloud_migration_button.clicked.connect(self.prompt_cloud_migration)
         
         button_layout.addWidget(self.open_button)
         button_layout.addWidget(self.open_folder_button)
+        button_layout.addWidget(self.cloud_migration_button)
         button_layout.addStretch()
         
         layout.addLayout(button_layout)
@@ -440,3 +447,79 @@ class PreviewPanel(QWidget):
         except Exception as e:
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(self, "Error Opening Folder", str(e))
+    
+    def prompt_cloud_migration(self):
+        """Prompt user for local and cloud directories and show migration suggestions with config dialog"""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox, QDialog, QFormLayout, QDialogButtonBox, QSpinBox, QLabel
+
+        local_dir = QFileDialog.getExistingDirectory(self, "Select Local Directory")
+        if not local_dir:
+            return
+        cloud_dir = QFileDialog.getExistingDirectory(self, "Select Cloud Directory (Simulated)")
+        if not cloud_dir:
+            return
+
+        # Configuration dialog for min/max/threshold
+        config_dialog = QDialog(self)
+        config_dialog.setWindowTitle("Cloud Migration Configuration")
+        layout = QFormLayout(config_dialog)
+
+        min_size_spin = QSpinBox()
+        min_size_spin.setRange(0, 100000)
+        min_size_spin.setValue(0)
+        min_size_spin.setSuffix(" MB")
+        layout.addRow("Minimum file size:", min_size_spin)
+
+        max_size_spin = QSpinBox()
+        max_size_spin.setRange(0, 100000)
+        max_size_spin.setValue(0)
+        max_size_spin.setSuffix(" MB")
+        max_size_spin.setSpecialValueText("No Limit")
+        layout.addRow("Maximum file size:", max_size_spin)
+
+        threshold_spin = QSpinBox()
+        threshold_spin.setRange(0, 100000)
+        threshold_spin.setValue(10)
+        threshold_spin.setSuffix(" MB")
+        layout.addRow("Migration threshold (suggest files >=):", threshold_spin)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(config_dialog.accept)
+        buttons.rejected.connect(config_dialog.reject)
+        layout.addWidget(buttons)
+
+        if not config_dialog.exec():
+            return
+
+        min_size = min_size_spin.value() * 1024 * 1024
+        max_size = max_size_spin.value() * 1024 * 1024 if max_size_spin.value() > 0 else None
+        threshold = threshold_spin.value() * 1024 * 1024
+
+        self.preview_cloud_migration(local_dir, cloud_dir, threshold, min_size, max_size)
+
+    def preview_cloud_migration(self, local_dir, cloud_dir, threshold_size=10*1024*1024, min_size=0, max_size=None):
+        """Show cloud migration suggestions for a directory with min/max/threshold"""
+        from PySide6.QtWidgets import QMessageBox
+        local_files = list_local_files(local_dir)
+        cloud_files = list_cloud_files(cloud_dir)
+        # Filter by min/max size
+        filtered_local = [
+            f for f in local_files
+            if os.path.exists(f)
+            and os.path.getsize(f) >= min_size
+            and (max_size is None or os.path.getsize(f) <= max_size)
+        ]
+        filtered_cloud = [
+            f for f in cloud_files
+            if os.path.exists(f)
+            and os.path.getsize(f) >= min_size
+            and (max_size is None or os.path.getsize(f) <= max_size)
+        ]
+        comparison = compare_files(filtered_local, filtered_cloud)
+        migration_candidates = suggest_migration(comparison["only_local"], threshold_size)
+        if migration_candidates:
+            msg = f"Files suggested for cloud migration (size >= {threshold_size//1024//1024}MB):\n"
+            msg += "\n".join([f"{name} ({size//1024//1024} MB)" for name, size in migration_candidates])
+        else:
+            msg = "No files found for migration (all files are already in cloud or below threshold)."
+        QMessageBox.information(self, "Cloud Migration Suggestions", msg)

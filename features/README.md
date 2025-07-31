@@ -17,6 +17,8 @@ This folder contains detailed documentation for each feature implemented in the 
 - **[08-bookmark-system.md](08-bookmark-system.md)** - Save frequently used directories and search presets
 - **[09-file-preview-panel.md](09-file-preview-panel.md)** - Image thumbnails and text file content preview
 - **[10-search-history.md](10-search-history.md)** - Track and replay previous searches with timestamps
+- **[11-media-intelligence.md](11-media-intelligence.md)** - Video/audio metadata extraction and preview
+- **[12-cloud-integration.md](12-cloud-integration.md)** - Compare local vs cloud files, migration suggestions
 
 ## Feature Status Overview
 
@@ -32,14 +34,12 @@ This folder contains detailed documentation for each feature implemented in the 
 | Bookmark System      | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 | File Preview Panel   | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 | Search History       | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Media Intelligence   | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
+| Cloud Integration    | ✅ Complete | ✅ Done        | ✅ Tested    | ✅ Documented   |
 
 ## Planned Features (Not Yet Implemented)
 
 ### Next Priority
-- **Media Intelligence** - Video quality analysis, codec identification, metadata extraction
-- **Cloud Integration** - Compare local vs cloud files, migration suggestions
-
-### Future Enhancements
 - **Security Features** - File integrity checking, suspicious file detection
 - **System Integration** - Context menus, scheduled scans, startup integration
 - **Usage Analytics** - File access patterns and storage optimization suggestions
