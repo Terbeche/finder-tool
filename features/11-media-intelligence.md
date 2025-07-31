@@ -1,12 +1,12 @@
 # Media Intelligence
 
 ## Overview
-Automatically extracts and displays video metadata (codec, resolution, bitrate, duration, frame rate, audio codec) for supported video files using FFmpeg's ffprobe utility.
+Automatically extracts and displays video and audio metadata (codec, resolution, bitrate, duration, frame rate, channels, sample rate) for supported media files using FFmpeg's ffprobe utility.
 
 ## Features Implemented
 - ✅ Video quality analysis (resolution, bitrate, duration)
 - ✅ Codec identification (video/audio)
-- ✅ Metadata extraction (frame rate, audio codec)
+- ✅ Metadata extraction (frame rate, audio codec, channels, sample rate)
 - ✅ Preview panel integration for instant display
 
 ## How to Test
@@ -17,29 +17,25 @@ Automatically extracts and displays video metadata (codec, resolution, bitrate, 
    - On Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH.
 
 2. **Open Smart File Manager and perform a file search**  
-   - Search in a directory containing video files (e.g., MP4, MKV, AVI, MOV).
+   - Search in a directory containing video and audio files (e.g., MP4, MKV, MP3, FLAC).
 
-3. **Select a video file in the results table**  
-   - Click on a video file row.
+3. **Select a video or audio file in the results table**  
+   - Click on a media file row.
 
 4. **View the preview panel**  
    - The panel should display extracted metadata:
-     - Video codec
-     - Resolution (width x height)
-     - Duration (seconds)
-     - Bitrate (kbps)
-     - Frame rate
-     - Audio codec
+     - **Video**: codec, resolution, duration, bitrate, frame rate, audio codec
+     - **Audio**: codec, channels, sample rate, duration, bitrate
 
-5. **Try different video formats**  
-   - Test with MP4, MKV, AVI, MOV, FLV, etc.
+5. **Try different formats**  
+   - Test with MP4, MKV, AVI, MOV, FLV, MP3, WAV, FLAC, AAC, etc.
 
 6. **Check for error handling**  
-   - If ffprobe is not installed or the file is not a video, the panel should show "No metadata available (ffprobe required)".
+   - If ffprobe is not installed or the file is not a supported media type, the panel should show "No metadata available (ffprobe required)".
 
 7. **Edge Cases**  
-   - Try with corrupted or unsupported video files.
-   - Try with non-video files (should show standard preview).
+   - Try with corrupted or unsupported media files.
+   - Try with non-media files (should show standard preview).
 
 ## Troubleshooting
 
@@ -49,7 +45,7 @@ Automatically extracts and displays video metadata (codec, resolution, bitrate, 
 ## Technical Implementation
 - Uses `ffprobe` via subprocess for cross-platform metadata extraction.
 - Parses JSON output for relevant fields.
-- Displays info in preview panel for video files.
+- Displays info in preview panel for video and audio files.
 
 ## Requirements
 - **FFmpeg/ffprobe** must be installed and available in system PATH.
@@ -59,6 +55,10 @@ Automatically extracts and displays video metadata (codec, resolution, bitrate, 
 - Only metadata extraction, not playback.
 - Requires ffprobe to be installed.
 
+## Future Enhancements
+- Add video thumbnail extraction.
+- Integrate waveform or spectrum preview for audio.
+- Integrate with duplicate detection for media files.
 ## Future Enhancements
 - Add video thumbnail extraction.
 - Support for audio files (bitrate, codec).

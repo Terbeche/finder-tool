@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QSize, QThread, Signal
 from PySide6.QtGui import QPixmap, QFont, QTextCursor
 from pathlib import Path
 import os
-from media_intelligence import get_video_metadata
+from media_intelligence import get_video_metadata, get_audio_metadata
 
 class ImageLoaderThread(QThread):
     """Thread for loading images without blocking UI"""
@@ -160,6 +160,8 @@ class PreviewPanel(QWidget):
             self.preview_text(file_info.path)
         elif extension in {"mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"}:
             self.preview_video(file_info.path)
+        elif extension in {"mp3", "wav", "ogg", "flac", "aac", "wma", "m4a"}:
+            self.preview_audio(file_info.path)
         else:
             self.show_no_preview(extension)
     
@@ -272,6 +274,23 @@ class PreviewPanel(QWidget):
             self.image_label.setText("🎥 Video file\n\n" + "\n".join(info))
         else:
             self.image_label.setText("🎥 Video file\n\nNo metadata available (ffprobe required)")
+    
+    def preview_audio(self, file_path):
+        """Preview audio file metadata"""
+        self.image_label.setText("🎵 Audio file\n\nExtracting metadata...")
+        self.text_preview.setVisible(False)
+        metadata = get_audio_metadata(file_path)
+        if metadata:
+            info = [
+                f"Codec: {metadata['audio_codec']}",
+                f"Channels: {metadata['channels']}",
+                f"Sample Rate: {metadata['sample_rate']} Hz",
+                f"Duration: {metadata['duration']:.1f} sec",
+                f"Bitrate: {metadata['bit_rate'] // 1000} kbps",
+            ]
+            self.image_label.setText("🎵 Audio file\n\n" + "\n".join(info))
+        else:
+            self.image_label.setText("🎵 Audio file\n\nNo metadata available (ffprobe required)")
     
     def show_no_preview(self, extension):
         """Show message for files that can't be previewed"""
