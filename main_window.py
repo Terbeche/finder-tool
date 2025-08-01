@@ -23,6 +23,7 @@ from bookmark_manager import BookmarkManager
 from preview_panel import PreviewPanel
 from search_history_manager import SearchHistoryManager
 from usage_analytics import UsageAnalytics
+from performance_optimizer import PerformanceOptimizer
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -59,6 +60,10 @@ class MainWindow(QMainWindow):
         
         # Initialize usage analytics
         self.usage_analytics = UsageAnalytics()
+        
+        # Initialize performance optimizer
+        self.performance_optimizer = PerformanceOptimizer()
+        self.performance_optimizer.start_monitoring()
         
         # Apply saved theme
         saved_theme = self.app_settings.get("theme_internal", "light")
@@ -403,6 +408,13 @@ class MainWindow(QMainWindow):
         # Usage analytics actions
         self.usage_analytics_action = QAction("Usage Analytics...", self)
         self.usage_analytics_action.triggered.connect(self.open_usage_analytics)
+        
+        # Performance actions
+        self.performance_report_action = QAction("Performance Report...", self)
+        self.performance_report_action.triggered.connect(self.show_performance_report)
+        
+        self.clear_cache_action = QAction("Clear Cache", self)
+        self.clear_cache_action.triggered.connect(self.clear_performance_cache)
     
     def create_menu(self):
         """Create application menu"""
@@ -441,6 +453,12 @@ class MainWindow(QMainWindow):
         # Add usage analytics to Tools menu
         tools_menu.addAction(self.usage_analytics_action)
         
+        # Add performance menu
+        tools_menu.addSeparator()
+        performance_menu = tools_menu.addMenu("Performance")
+        performance_menu.addAction(self.performance_report_action)
+        performance_menu.addAction(self.clear_cache_action)
+        
         # Actions menu
         actions_menu = menu_bar.addMenu("Actions")
         actions_menu.addAction(self.delete_action)
@@ -477,55 +495,134 @@ class MainWindow(QMainWindow):
         from time import time
         search_start_time = time()
         
-        # Get search parameters
+        # Check for cached results
         directory = self.path_edit.text()
         if not os.path.exists(directory):
             QMessageBox.warning(self, "Invalid Directory", "The specified directory does not exist.")
             return
         
-        # Update current directory
-        self.current_directory = directory
+        # Check cache first
+        cached_result = self.performance_optimizer.get_cached_scan(directory)
+        if cached_result:
+            # Ask user if they want to use cached results
+            use_cache = QMessageBox.question(
+                self, "Cached Results Available",
+                f"Found cached scan results for this directory.\n"
+                f"Files: {cached_result['file_count']}\n"
+                f"Scan time: {cached_result['scan_time']:.2f}s\n\n"
+                f"Use cached results or perform new scan?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            
+            if use_cache == QMessageBox.Yes:
+                self.statusBar().showMessage("Using cached results...")
+                return
         
-        # Get selected category
-        selected_category_index = self.category_combo.currentIndex()
-        extensions = []
-        if selected_category_index > 0:
-            # Specific category selected
-            category = self.categories[selected_category_index - 1]
-            extensions = category.extensions
+        # Get optimization strategy
+        optimization = self.performance_optimizer.optimize_scan_strategy(directory)
         
-        # Get size constraints
-        min_size = self.min_size.value()
-        max_size = self.max_size.value() if self.max_size.value() > 0 else None
-        
-        # Get advanced filters
-        advanced_filters = self.get_advanced_filters()
-        
-        # Clear previous results
-        self.results_table.setRowCount(0)
-        self.files = []
-        
-        # Update UI
-        self.search_button.setEnabled(False)
-        self.pause_button.setEnabled(True)
-        self.stop_button.setEnabled(True)
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
-        
-        # Stop any existing scanner thread
-        if self.scanner_thread and self.scanner_thread.isRunning():
-            self.scanner_thread.stop()
-            self.scanner_thread.wait()
-        
-        # Create and start scanner thread
-        self.scanner_thread = FileScannerThread(
-            directory, min_size, max_size, extensions, 
-            self.categories, self.max_depth.value(), advanced_filters
-        )
-        self.scanner_thread.update_progress.connect(self.update_progress)
-        self.scanner_thread.file_found.connect(self.add_file_to_results)
-        self.scanner_thread.scan_complete.connect(self.scan_complete)
-        self.scanner_thread.start()
+        # Get search parameters
+        if optimization == "fast":
+            # Fast scan: only top-level files, no subdirectories
+            directory = self.path_edit.text()
+            if not os.path.exists(directory):
+                QMessageBox.warning(self, "Invalid Directory", "The specified directory does not exist.")
+                return
+            
+            # Update current directory
+            self.current_directory = directory
+            
+            # Get selected category
+            selected_category_index = self.category_combo.currentIndex()
+            extensions = []
+            if selected_category_index > 0:
+                # Specific category selected
+                category = self.categories[selected_category_index - 1]
+                extensions = category.extensions
+            
+            # Get size constraints
+            min_size = self.min_size.value()
+            max_size = self.max_size.value() if self.max_size.value() > 0 else None
+            
+            # Get advanced filters
+            advanced_filters = self.get_advanced_filters()
+            
+            # Clear previous results
+            self.results_table.setRowCount(0)
+            self.files = []
+            
+            # Update UI
+            self.search_button.setEnabled(False)
+            self.pause_button.setEnabled(True)
+            self.stop_button.setEnabled(True)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setValue(0)
+            
+            # Stop any existing scanner thread
+            if self.scanner_thread and self.scanner_thread.isRunning():
+                self.scanner_thread.stop()
+                self.scanner_thread.wait()
+            
+            # Create and start scanner thread
+            self.scanner_thread = FileScannerThread(
+                directory, min_size, max_size, extensions, 
+                self.categories, 1, advanced_filters
+            )
+            self.scanner_thread.update_progress.connect(self.update_progress)
+            self.scanner_thread.file_found.connect(self.add_file_to_results)
+            self.scanner_thread.scan_complete.connect(self.scan_complete)
+            self.scanner_thread.start()
+        else:
+            # Full scan: all files and subdirectories
+            directory = self.path_edit.text()
+            if not os.path.exists(directory):
+                QMessageBox.warning(self, "Invalid Directory", "The specified directory does not exist.")
+                return
+            
+            # Update current directory
+            self.current_directory = directory
+            
+            # Get selected category
+            selected_category_index = self.category_combo.currentIndex()
+            extensions = []
+            if selected_category_index > 0:
+                # Specific category selected
+                category = self.categories[selected_category_index - 1]
+                extensions = category.extensions
+            
+            # Get size constraints
+            min_size = self.min_size.value()
+            max_size = self.max_size.value() if self.max_size.value() > 0 else None
+            
+            # Get advanced filters
+            advanced_filters = self.get_advanced_filters()
+            
+            # Clear previous results
+            self.results_table.setRowCount(0)
+            self.files = []
+            
+            # Update UI
+            self.search_button.setEnabled(False)
+            self.pause_button.setEnabled(True)
+            self.stop_button.setEnabled(True)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setValue(0)
+            
+            # Stop any existing scanner thread
+            if self.scanner_thread and self.scanner_thread.isRunning():
+                self.scanner_thread.stop()
+                self.scanner_thread.wait()
+            
+            # Create and start scanner thread
+            self.scanner_thread = FileScannerThread(
+                directory, min_size, max_size, extensions, 
+                self.categories, self.max_depth.value(), advanced_filters
+            )
+            self.scanner_thread.update_progress.connect(self.update_progress)
+            self.scanner_thread.file_found.connect(self.add_file_to_results)
+            self.scanner_thread.scan_complete.connect(self.scan_complete)
+            self.scanner_thread.start()
         
         # Store search configuration for history
         self.current_search_config = {
@@ -577,7 +674,14 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
         self.statusBar().showMessage(f"Scan complete. Found {len(files)} files.")
         
-        # Record search completion and add to history
+        # Record performance metrics
+        from time import time
+        search_duration = time() - getattr(self, 'search_start_time', time())
+        self.performance_optimizer.record_scan_performance(
+            self.current_directory, len(files), search_duration
+        )
+        
+        # Add search to history
         from time import time
         search_duration = time() - getattr(self, 'search_start_time', time())
         
@@ -1024,6 +1128,9 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Handle window close event"""
+        # Stop performance monitoring
+        self.performance_optimizer.stop_monitoring()
+        
         # Save current settings before closing
         self.app_settings["last_directory"] = self.current_directory
         self.config_manager.save_settings(self.app_settings)
@@ -1403,3 +1510,17 @@ class MainWindow(QMainWindow):
         from usage_analytics_dialog import UsageAnalyticsDialog
         dialog = UsageAnalyticsDialog(self.usage_analytics, self.files, self)
         dialog.exec()
+    
+    def show_performance_report(self):
+        """Show performance report dialog"""
+        from performance_dialog import PerformanceDialog
+        dialog = PerformanceDialog(self.performance_optimizer, self)
+        dialog.exec()
+    
+    def clear_performance_cache(self):
+        """Clear performance cache"""
+        cleared_entries = self.performance_optimizer.clear_cache()
+        QMessageBox.information(
+            self, "Cache Cleared",
+            f"Performance cache cleared.\nMemory optimization performed."
+        )
