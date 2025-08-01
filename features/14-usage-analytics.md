@@ -1,65 +1,65 @@
 # Usage Analytics
 
 ## Overview
-Comprehensive file usage tracking and analytics system that monitors file access patterns, provides storage insights, and generates actionable recommendations for file management and cleanup.
+Tracks file access patterns, calculates storage cost, and provides actionable insights for optimizing storage and file usage.
 
 ## Need/Purpose
-- Track which files are actually being used vs. taking up space
-- Identify cleanup candidates (large, rarely accessed files)
-- Provide storage cost analysis and optimization suggestions
-- Help users make informed decisions about file organization
-- Monitor file access patterns to improve workflow efficiency
+- Understand which files are accessed most/least
+- Identify rarely used large files for cleanup
+- Estimate monthly storage costs
+- Provide recommendations for archiving or migration
 
 ## Features Implemented
-- ✅ Real-time file access tracking with timestamps
-- ✅ Usage frequency analysis (most/least accessed files)
-- ✅ Storage breakdown by file type with size and count statistics
-- ✅ Cleanup candidates identification (large, rarely accessed files)
-- ✅ Storage cost calculator with configurable rates
-- ✅ Intelligent recommendations based on usage patterns
-- ✅ Analytics report export functionality
-- ✅ Visual analytics dashboard with multiple tabs
+- ✅ File access tracking (open, preview, etc.)
+- ✅ Usage statistics (access count, last accessed)
+- ✅ Storage cost calculator
+- ✅ Analytics dialog with recommendations
+- ✅ Cleanup candidate identification
+- ✅ File type breakdown and largest files analysis
 
 ## How to Test
 
-### Basic Usage Tracking
-1. Search for files and select them in the results table
-2. Open files using the "Open File" button or preview panel
-3. Go to Tools → Usage Analytics to see tracked access data
-4. **Expected Result**: Files you opened show in "Most Frequently Accessed" table
+### Access Tracking
+1. Open or preview files in the application
+2. Open Usage Analytics dialog
+3. Check access counts and last accessed dates
 
-### Storage Analysis
-1. Search a directory with various file types
-2. Open Usage Analytics → Storage Analysis tab
-3. **Expected Result**: See breakdown by file type with sizes and percentages
-4. **Expected Result**: Largest files listed in order of size
+### Storage Cost Calculation
+1. View estimated monthly storage cost in analytics dialog
+2. Adjust file selection and observe cost changes
 
-### Cleanup Recommendations
-1. Search a directory with large files (>50MB)
-2. Don't access some of the large files
-3. Open Usage Analytics → File Access tab
-4. **Expected Result**: Rarely accessed large files appear in cleanup candidates
+### Recommendations
+1. Review recommendations for cleanup, archiving, and migration
+2. Check for rarely accessed large files and duplicate-prone types
 
-### Analytics Export
-1. Generate some usage data by accessing files
-2. In Usage Analytics dialog, click "Export Analytics Report"
-3. Save the report file
-4. **Expected Result**: Text file with comprehensive analytics data
-
-### Real-time Updates
-1. Keep Usage Analytics dialog open
-2. Access files from main window
-3. **Expected Result**: Analytics update automatically every 10 seconds
+### Data Clearing
+1. Use "Clear Usage Data" button in analytics dialog
+2. Confirm all usage statistics are reset
 
 ## Technical Implementation
 
-### UsageAnalytics Class
-- **Data Structure**: Dictionary mapping file paths to access data
-- **Persistence**: In-memory storage (resets on app restart)
-- **Access Recording**: Automatic tracking when files are opened or previewed
-- **Cost Calculation**: Configurable cost per GB for storage estimation
+- Usage data stored in memory and optionally persisted
+- Access events recorded on file open/preview
+- Analytics dialog displays statistics, breakdowns, and recommendations
+- Storage cost calculated based on total file size and configurable rate
 
-### Analytics Dialog Components
+## Known Limitations
+
+- Usage data may not persist between sessions (unless implemented)
+- Storage cost uses a fixed rate (can be made configurable)
+- Recommendations are based on simple heuristics
+
+## Future Enhancements
+
+- Persist usage data between sessions
+- More advanced analytics (e.g., access frequency trends)
+- Customizable storage cost rates
+- Integration with cloud usage statistics
+
+## Related Features
+
+- File Operations (records access events)
+- Performance Optimization (can use analytics for recommendations)
 - **Overview Tab**: Storage statistics and recommendations summary
 - **File Access Tab**: Most/least accessed files with cleanup candidates
 - **Storage Analysis Tab**: File type breakdown and largest files analysis

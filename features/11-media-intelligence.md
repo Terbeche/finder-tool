@@ -3,11 +3,16 @@
 ## Overview
 Automatically extracts and displays video and audio metadata (codec, resolution, bitrate, duration, frame rate, channels, sample rate) for supported media files using FFmpeg's ffprobe utility.
 
+## Need/Purpose
+- Help users understand media file properties
+- Identify low-quality or duplicate media files
+- Provide quick preview of media details
+
 ## Features Implemented
-- ✅ Video quality analysis (resolution, bitrate, duration)
-- ✅ Codec identification (video/audio)
-- ✅ Metadata extraction (frame rate, audio codec, channels, sample rate)
-- ✅ Preview panel integration for instant display
+- ✅ Video metadata extraction (codec, resolution, duration, bitrate)
+- ✅ Audio metadata extraction (codec, channels, sample rate, duration)
+- ✅ Media preview in file preview panel
+- ✅ Integration with ffprobe (requires ffmpeg installed)
 
 ## How to Test
 
@@ -37,6 +42,14 @@ Automatically extracts and displays video and audio metadata (codec, resolution,
    - Try with corrupted or unsupported media files.
    - Try with non-media files (should show standard preview).
 
+### Video Metadata
+1. Select a video file in the results table
+2. View metadata in the preview panel
+
+### Audio Metadata
+1. Select an audio file in the results table
+2. View metadata in the preview panel
+
 ## Troubleshooting
 
 - If metadata is missing, verify ffprobe is installed and accessible from the command line.
@@ -59,7 +72,9 @@ Automatically extracts and displays video and audio metadata (codec, resolution,
 - Add video thumbnail extraction.
 - Integrate waveform or spectrum preview for audio.
 - Integrate with duplicate detection for media files.
-## Future Enhancements
-- Add video thumbnail extraction.
-- Support for audio files (bitrate, codec).
-- Integrate with duplicate detection for media files.
+- Support for more media formats and metadata fields.
+
+## Related Features
+
+- File Preview Panel (displays media metadata)
+- Duplicate Detection (can use media metadata for comparison)
