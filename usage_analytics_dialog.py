@@ -1,15 +1,17 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QTableWidget, QTableWidgetItem, QHeaderView, QGroupBox,
-    QTabWidget, QWidget, QTextEdit, QFormLayout, QSpinBox
+    QTabWidget, QWidget, QTextEdit, QProgressBar, QFormLayout,
+    QMessageBox, QFileDialog
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
-import os
 from pathlib import Path
+import time
+from datetime import datetime, timedelta
 
 class UsageAnalyticsDialog(QDialog):
-    """Dialog for viewing usage analytics and insights"""
+    """Dialog for viewing file usage analytics and storage insights"""
     
     def __init__(self, usage_analytics, files, parent=None):
         super().__init__(parent)
@@ -17,7 +19,13 @@ class UsageAnalyticsDialog(QDialog):
         self.files = files
         self.setWindowTitle("Usage Analytics")
         self.setModal(True)
-        self.resize(800, 600)
+        self.resize(900, 700)
+        
+        # Timer for real-time updates
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.refresh_data)
+        self.update_timer.start(10000)  # Update every 10 seconds
+        
         self.setup_ui()
         self.refresh_data()
     
@@ -28,280 +36,381 @@ class UsageAnalyticsDialog(QDialog):
         # Create tab widget
         tab_widget = QTabWidget()
         
-        # Frequently Accessed Tab
-        frequent_tab = QWidget()
-        frequent_layout = QVBoxLayout(frequent_tab)
+        # Overview Tab
+        overview_tab = QWidget()
+        overview_layout = QVBoxLayout(overview_tab)
         
-        # Controls
-        controls_layout = QHBoxLayout()
-        self.frequent_limit = QSpinBox()
-        self.frequent_limit.setRange(5, 100)
-        self.frequent_limit.setValue(20)
-        self.frequent_limit.valueChanged.connect(self.refresh_frequent_files)
-        controls_layout.addWidget(QLabel("Show top:"))
-        controls_layout.addWidget(self.frequent_limit)
-        controls_layout.addWidget(QLabel("files"))
-        controls_layout.addStretch()
-        frequent_layout.addLayout(controls_layout)
+        # Storage overview
+        storage_group = QGroupBox("Storage Overview")
+        storage_layout = QFormLayout(storage_group)
         
-        # Frequently accessed files table
-        self.frequent_table = QTableWidget()
-        self.frequent_table.setColumnCount(4)
-        self.frequent_table.setHorizontalHeaderLabels([
-            "File Name", "Path", "Access Count", "Last Accessed"
+        self.total_files_label = QLabel("0")
+        self.total_size_label = QLabel("0 B")
+        self.avg_file_size_label = QLabel("0 B")
+        self.largest_file_label = QLabel("None")
+        
+        storage_layout.addRow("Total Files Scanned:", self.total_files_label)
+        storage_layout.addRow("Total Size:", self.total_size_label)
+        storage_layout.addRow("Average File Size:", self.avg_file_size_label)
+        storage_layout.addRow("Largest File:", self.largest_file_label)
+        
+        overview_layout.addWidget(storage_group)
+        
+        # Usage statistics
+        usage_group = QGroupBox("Usage Statistics")
+        usage_layout = QFormLayout(usage_group)
+        
+        self.accessed_files_label = QLabel("0")
+        self.never_accessed_label = QLabel("0")
+        self.recent_access_label = QLabel("0")
+        self.storage_cost_label = QLabel("$0.00")
+        
+        usage_layout.addRow("Files Accessed:", self.accessed_files_label)
+        usage_layout.addRow("Never Accessed:", self.never_accessed_label)
+        usage_layout.addRow("Recently Accessed (7 days):", self.recent_access_label)
+        usage_layout.addRow("Estimated Storage Cost (monthly):", self.storage_cost_label)
+        
+        overview_layout.addWidget(usage_group)
+        
+        # Recommendations
+        recommendations_group = QGroupBox("Recommendations")
+        recommendations_layout = QVBoxLayout(recommendations_group)
+        
+        self.recommendations_text = QTextEdit()
+        self.recommendations_text.setMaximumHeight(150)
+        self.recommendations_text.setReadOnly(True)
+        recommendations_layout.addWidget(self.recommendations_text)
+        
+        overview_layout.addWidget(recommendations_group)
+        overview_layout.addStretch()
+        
+        tab_widget.addTab(overview_tab, "Overview")
+        
+        # File Access Tab
+        access_tab = QWidget()
+        access_layout = QVBoxLayout(access_tab)
+        
+        # Most accessed files
+        most_accessed_group = QGroupBox("Most Frequently Accessed Files")
+        most_accessed_layout = QVBoxLayout(most_accessed_group)
+        
+        self.most_accessed_table = QTableWidget()
+        self.most_accessed_table.setColumnCount(4)
+        self.most_accessed_table.setHorizontalHeaderLabels([
+            "File Name", "Access Count", "Last Accessed", "Size"
         ])
-        self.frequent_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.frequent_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.frequent_table.setAlternatingRowColors(True)
-        frequent_layout.addWidget(self.frequent_table)
+        self.most_accessed_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.most_accessed_table.setMaximumHeight(200)
+        most_accessed_layout.addWidget(self.most_accessed_table)
         
-        tab_widget.addTab(frequent_tab, "Frequently Accessed")
+        access_layout.addWidget(most_accessed_group)
         
-        # Cleanup Suggestions Tab
-        cleanup_tab = QWidget()
-        cleanup_layout = QVBoxLayout(cleanup_tab)
+        # Least accessed files
+        least_accessed_group = QGroupBox("Rarely Accessed Large Files (Cleanup Candidates)")
+        least_accessed_layout = QVBoxLayout(least_accessed_group)
         
-        # Controls
-        cleanup_controls_layout = QHBoxLayout()
-        self.cleanup_limit = QSpinBox()
-        self.cleanup_limit.setRange(5, 100)
-        self.cleanup_limit.setValue(20)
-        self.cleanup_limit.valueChanged.connect(self.refresh_cleanup_suggestions)
-        cleanup_controls_layout.addWidget(QLabel("Show top:"))
-        cleanup_controls_layout.addWidget(self.cleanup_limit)
-        cleanup_controls_layout.addWidget(QLabel("files for cleanup"))
-        cleanup_controls_layout.addStretch()
-        cleanup_layout.addLayout(cleanup_controls_layout)
-        
-        # Cleanup suggestions table
-        self.cleanup_table = QTableWidget()
-        self.cleanup_table.setColumnCount(5)
-        self.cleanup_table.setHorizontalHeaderLabels([
-            "File Name", "Path", "Size", "Access Count", "Cleanup Priority"
+        self.least_accessed_table = QTableWidget()
+        self.least_accessed_table.setColumnCount(4)
+        self.least_accessed_table.setHorizontalHeaderLabels([
+            "File Name", "Size", "Last Modified", "Path"
         ])
-        self.cleanup_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.cleanup_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.cleanup_table.setAlternatingRowColors(True)
-        cleanup_layout.addWidget(self.cleanup_table)
+        self.least_accessed_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.least_accessed_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        least_accessed_layout.addWidget(self.least_accessed_table)
         
-        tab_widget.addTab(cleanup_tab, "Cleanup Suggestions")
+        access_layout.addWidget(least_accessed_group)
+        
+        tab_widget.addTab(access_tab, "File Access")
         
         # Storage Analysis Tab
         storage_tab = QWidget()
         storage_layout = QVBoxLayout(storage_tab)
         
-        # Storage cost configuration
-        cost_group = QGroupBox("Storage Cost Configuration")
-        cost_layout = QFormLayout(cost_group)
+        # File type breakdown
+        breakdown_group = QGroupBox("Storage Breakdown by File Type")
+        breakdown_layout = QVBoxLayout(breakdown_group)
         
-        self.cost_per_gb = QSpinBox()
-        self.cost_per_gb.setRange(1, 1000)
-        self.cost_per_gb.setValue(10)  # 10 cents per GB
-        self.cost_per_gb.setSuffix(" cents/GB")
-        self.cost_per_gb.valueChanged.connect(self.refresh_storage_analysis)
-        cost_layout.addRow("Storage Cost:", self.cost_per_gb)
-        
-        storage_layout.addWidget(cost_group)
-        
-        # Storage analysis display
-        analysis_group = QGroupBox("Storage Analysis")
-        analysis_layout = QVBoxLayout(analysis_group)
-        
-        self.storage_analysis_text = QTextEdit()
-        self.storage_analysis_text.setReadOnly(True)
-        self.storage_analysis_text.setMaximumHeight(200)
-        analysis_layout.addWidget(self.storage_analysis_text)
-        
-        storage_layout.addWidget(analysis_group)
-        
-        # Category breakdown table
-        category_group = QGroupBox("Storage by Category")
-        category_layout = QVBoxLayout(category_group)
-        
-        self.category_table = QTableWidget()
-        self.category_table.setColumnCount(4)
-        self.category_table.setHorizontalHeaderLabels([
-            "Category", "File Count", "Total Size", "Average Access"
+        self.breakdown_table = QTableWidget()
+        self.breakdown_table.setColumnCount(4)
+        self.breakdown_table.setHorizontalHeaderLabels([
+            "File Type", "File Count", "Total Size", "Percentage"
         ])
-        self.category_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.category_table.setAlternatingRowColors(True)
-        category_layout.addWidget(self.category_table)
+        self.breakdown_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        breakdown_layout.addWidget(self.breakdown_table)
         
-        storage_layout.addWidget(category_group)
-        storage_layout.addStretch()
+        storage_layout.addWidget(breakdown_group)
+        
+        # Large files analysis
+        large_files_group = QGroupBox("Largest Files")
+        large_files_layout = QVBoxLayout(large_files_group)
+        
+        self.large_files_table = QTableWidget()
+        self.large_files_table.setColumnCount(4)
+        self.large_files_table.setHorizontalHeaderLabels([
+            "File Name", "Size", "Type", "Path"
+        ])
+        self.large_files_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.large_files_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        large_files_layout.addWidget(self.large_files_table)
+        
+        storage_layout.addWidget(large_files_group)
         
         tab_widget.addTab(storage_tab, "Storage Analysis")
         
         layout.addWidget(tab_widget)
         
-        # Dialog buttons
+        # Action buttons
         button_layout = QHBoxLayout()
         
-        refresh_button = QPushButton("Refresh Data")
-        refresh_button.clicked.connect(self.refresh_data)
+        export_btn = QPushButton("Export Analytics Report")
+        export_btn.clicked.connect(self.export_report)
         
-        export_button = QPushButton("Export Report")
-        export_button.clicked.connect(self.export_report)
+        clear_data_btn = QPushButton("Clear Usage Data")
+        clear_data_btn.clicked.connect(self.clear_usage_data)
         
-        close_button = QPushButton("Close")
-        close_button.clicked.connect(self.accept)
+        refresh_btn = QPushButton("Refresh Data")
+        refresh_btn.clicked.connect(self.refresh_data)
         
-        button_layout.addWidget(refresh_button)
-        button_layout.addWidget(export_button)
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        
+        button_layout.addWidget(export_btn)
+        button_layout.addWidget(clear_data_btn)
+        button_layout.addWidget(refresh_btn)
         button_layout.addStretch()
-        button_layout.addWidget(close_button)
+        button_layout.addWidget(close_btn)
         
         layout.addLayout(button_layout)
     
     def refresh_data(self):
         """Refresh all analytics data"""
-        self.refresh_frequent_files()
-        self.refresh_cleanup_suggestions()
-        self.refresh_storage_analysis()
+        self.update_overview()
+        self.update_file_access_tables()
+        self.update_storage_analysis()
+        self.update_recommendations()
     
-    def refresh_frequent_files(self):
-        """Refresh frequently accessed files table"""
-        limit = self.frequent_limit.value()
-        frequent_files = self.usage_analytics.get_frequently_accessed(limit)
+    def update_overview(self):
+        """Update the overview statistics"""
+        if not self.files:
+            return
         
-        self.frequent_table.setRowCount(len(frequent_files))
-        
-        for row, (file_path, data) in enumerate(frequent_files):
-            # File name
-            name = os.path.basename(file_path)
-            self.frequent_table.setItem(row, 0, QTableWidgetItem(name))
-            
-            # Path
-            self.frequent_table.setItem(row, 1, QTableWidgetItem(file_path))
-            
-            # Access count
-            count = str(data["access_count"])
-            self.frequent_table.setItem(row, 2, QTableWidgetItem(count))
-            
-            # Last accessed
-            last_accessed = "Never"
-            if data["last_accessed"]:
-                last_accessed = data["last_accessed"].strftime("%Y-%m-%d %H:%M")
-            self.frequent_table.setItem(row, 3, QTableWidgetItem(last_accessed))
-    
-    def refresh_cleanup_suggestions(self):
-        """Refresh cleanup suggestions table"""
-        limit = self.cleanup_limit.value()
-        
-        # Calculate cleanup suggestions based on size vs access frequency
-        cleanup_candidates = []
-        
-        for file_info in self.files:
-            file_path = file_info.path
-            usage_data = self.usage_analytics.usage_data.get(file_path, {"access_count": 0})
-            
-            # Calculate cleanup priority (larger files with fewer accesses = higher priority)
-            if usage_data["access_count"] == 0:
-                priority = file_info.size  # Never accessed files get priority by size
-            else:
-                priority = file_info.size / (usage_data["access_count"] + 1)
-            
-            cleanup_candidates.append((file_info, usage_data["access_count"], priority))
-        
-        # Sort by cleanup priority (highest first)
-        cleanup_candidates.sort(key=lambda x: x[2], reverse=True)
-        
-        self.cleanup_table.setRowCount(min(len(cleanup_candidates), limit))
-        
-        for row, (file_info, access_count, priority) in enumerate(cleanup_candidates[:limit]):
-            # File name
-            self.cleanup_table.setItem(row, 0, QTableWidgetItem(file_info.name))
-            
-            # Path
-            self.cleanup_table.setItem(row, 1, QTableWidgetItem(file_info.path))
-            
-            # Size
-            self.cleanup_table.setItem(row, 2, QTableWidgetItem(file_info.get_size_str()))
-            
-            # Access count
-            self.cleanup_table.setItem(row, 3, QTableWidgetItem(str(access_count)))
-            
-            # Priority (simplified)
-            if access_count == 0:
-                priority_text = "High (Never accessed)"
-            elif access_count < 3:
-                priority_text = "Medium (Rarely accessed)"
-            else:
-                priority_text = "Low (Frequently accessed)"
-            
-            self.cleanup_table.setItem(row, 4, QTableWidgetItem(priority_text))
-    
-    def refresh_storage_analysis(self):
-        """Refresh storage analysis"""
-        cost_per_gb = self.cost_per_gb.value() / 100.0  # Convert cents to dollars
-        
-        # Calculate total storage cost
-        total_cost = self.usage_analytics.get_storage_cost(cost_per_gb)
+        # Basic file statistics
+        total_files = len(self.files)
         total_size = sum(f.size for f in self.files)
-        total_size_gb = total_size / (1024 ** 3)
+        avg_size = total_size / total_files if total_files > 0 else 0
+        largest_file = max(self.files, key=lambda f: f.size) if self.files else None
         
-        # Calculate category breakdown
-        category_stats = {}
+        self.total_files_label.setText(str(total_files))
+        self.total_size_label.setText(self._format_size(total_size))
+        self.avg_file_size_label.setText(self._format_size(avg_size))
+        self.largest_file_label.setText(largest_file.name if largest_file else "None")
+        
+        # Usage statistics (now using get_access_statistics)
+        stats = self.usage_analytics.get_access_statistics()
+        self.accessed_files_label.setText(str(stats["accessed_files"]))
+        self.never_accessed_label.setText(str(stats["never_accessed"]))
+        # Recent access (last 7 days)
+        cutoff_date = datetime.now() - timedelta(days=7)
+        recent_access = 0
+        for file_path, data in self.usage_analytics.usage_data.items():
+            if data["last_accessed"]:
+                try:
+                    last_access = data["last_accessed"]
+                    if isinstance(last_access, str):
+                        last_access = datetime.fromisoformat(last_access)
+                    if last_access > cutoff_date:
+                        recent_access += 1
+                except (ValueError, TypeError):
+                    pass
+        self.recent_access_label.setText(str(recent_access))
+        # Storage cost calculation
+        storage_cost = self.usage_analytics.get_storage_cost()
+        self.storage_cost_label.setText(f"${storage_cost:.2f}")
+        # Optionally show access rate
+        self.total_files_label.setToolTip(f"Access rate: {stats['access_rate']:.1f}%")
+    
+    def update_file_access_tables(self):
+        """Update the file access tables"""
+        # Most accessed files
+        frequently_accessed = self.usage_analytics.get_frequently_accessed(10)
+        self.most_accessed_table.setRowCount(len(frequently_accessed))
+        
+        for row, (file_path, data) in enumerate(frequently_accessed):
+            file_name = Path(file_path).name
+            access_count = data["access_count"]
+            last_accessed = data["last_accessed"] or "Never"
+            if last_accessed != "Never":
+                try:
+                    dt = datetime.fromisoformat(last_accessed)
+                    last_accessed = dt.strftime("%Y-%m-%d %H:%M")
+                except (ValueError, TypeError):
+                    last_accessed = "Unknown"
+            
+            # Find file size
+            file_size = "Unknown"
+            for file_info in self.files:
+                if file_info.path == file_path:
+                    file_size = file_info.get_size_str()
+                    break
+            
+            self.most_accessed_table.setItem(row, 0, QTableWidgetItem(file_name))
+            self.most_accessed_table.setItem(row, 1, QTableWidgetItem(str(access_count)))
+            self.most_accessed_table.setItem(row, 2, QTableWidgetItem(last_accessed))
+            self.most_accessed_table.setItem(row, 3, QTableWidgetItem(file_size))
+        
+        # Cleanup candidates (large files, rarely accessed)
+        cleanup_candidates = self._get_cleanup_candidates()
+        self.least_accessed_table.setRowCount(len(cleanup_candidates))
+        
+        for row, file_info in enumerate(cleanup_candidates):
+            self.least_accessed_table.setItem(row, 0, QTableWidgetItem(file_info.name))
+            self.least_accessed_table.setItem(row, 1, QTableWidgetItem(file_info.get_size_str()))
+            self.least_accessed_table.setItem(row, 2, QTableWidgetItem(
+                file_info.modified_date.strftime("%Y-%m-%d %H:%M")
+            ))
+            self.least_accessed_table.setItem(row, 3, QTableWidgetItem(file_info.path))
+    
+    def update_storage_analysis(self):
+        """Update the storage analysis tables"""
+        # File type breakdown
+        type_breakdown = self._calculate_type_breakdown()
+        self.breakdown_table.setRowCount(len(type_breakdown))
+        
+        total_size = sum(data["size"] for data in type_breakdown.values())
+        
+        for row, (file_type, data) in enumerate(sorted(
+            type_breakdown.items(), 
+            key=lambda x: x[1]["size"], 
+            reverse=True
+        )):
+            count = data["count"]
+            size = data["size"]
+            percentage = (size / total_size * 100) if total_size > 0 else 0
+            
+            self.breakdown_table.setItem(row, 0, QTableWidgetItem(file_type))
+            self.breakdown_table.setItem(row, 1, QTableWidgetItem(str(count)))
+            self.breakdown_table.setItem(row, 2, QTableWidgetItem(self._format_size(size)))
+            self.breakdown_table.setItem(row, 3, QTableWidgetItem(f"{percentage:.1f}%"))
+        
+        # Largest files
+        largest_files = sorted(self.files, key=lambda f: f.size, reverse=True)[:20]
+        self.large_files_table.setRowCount(len(largest_files))
+        
+        for row, file_info in enumerate(largest_files):
+            self.large_files_table.setItem(row, 0, QTableWidgetItem(file_info.name))
+            self.large_files_table.setItem(row, 1, QTableWidgetItem(file_info.get_size_str()))
+            self.large_files_table.setItem(row, 2, QTableWidgetItem(file_info.extension.upper()))
+            self.large_files_table.setItem(row, 3, QTableWidgetItem(file_info.path))
+    
+    def update_recommendations(self):
+        """Update storage optimization recommendations"""
+        recommendations = []
+        # Use access statistics for recommendations
+        stats = self.usage_analytics.get_access_statistics()
+        if stats["total_files"] > 0:
+            recommendations.append(
+                f"📈 {stats['access_rate']:.1f}% of files have been accessed at least once."
+            )
+            if stats["never_accessed"] > 0:
+                recommendations.append(
+                    f"🔍 {stats['never_accessed']} files have never been accessed - consider archiving or removing them"
+                )
+        
+        # Analyze cleanup potential
+        cleanup_candidates = self._get_cleanup_candidates()
+        if cleanup_candidates:
+            total_cleanup_size = sum(f.size for f in cleanup_candidates)
+            recommendations.append(
+                f"🗑️ Consider removing {len(cleanup_candidates)} rarely accessed large files "
+                f"to save {self._format_size(total_cleanup_size)}"
+            )
+        
+        # Analyze file types
+        type_breakdown = self._calculate_type_breakdown()
+        if type_breakdown:
+            largest_type = max(type_breakdown.items(), key=lambda x: x[1]["size"])
+            recommendations.append(
+                f"📊 {largest_type[0]} files take up the most space: "
+                f"{self._format_size(largest_type[1]['size'])} ({largest_type[1]['count']} files)"
+            )
+        
+        # Storage cost analysis
+        storage_cost = self.usage_analytics.get_storage_cost()
+        if storage_cost > 10:  # $10 threshold
+            recommendations.append(
+                f"💰 Monthly storage cost is ${storage_cost:.2f} - consider cloud archiving for old files"
+            )
+        
+        # Duplicate file potential
+        extensions = {}
         for file_info in self.files:
-            category = file_info.category.name if file_info.category else "Uncategorized"
-            if category not in category_stats:
-                category_stats[category] = {"count": 0, "size": 0, "total_access": 0}
-            
-            category_stats[category]["count"] += 1
-            category_stats[category]["size"] += file_info.size
-            
-            # Get access count for this file
-            usage_data = self.usage_analytics.usage_data.get(file_info.path, {"access_count": 0})
-            category_stats[category]["total_access"] += usage_data["access_count"]
+            ext = file_info.extension.lower()
+            if ext:
+                extensions[ext] = extensions.get(ext, 0) + 1
         
-        # Update storage analysis text
-        analysis_text = f"""Storage Cost Analysis:
+        duplicate_prone = [ext for ext, count in extensions.items() if count > 50]
+        if duplicate_prone:
+            recommendations.append(
+                f"🔍 High file counts for {', '.join(duplicate_prone[:3])} files - check for duplicates"
+            )
         
-Total Files: {len(self.files):,}
-Total Storage: {total_size_gb:.2f} GB
-Estimated Monthly Cost: ${total_cost:.2f}
-
-Cost Breakdown:
-• Files with 0 accesses: {len([f for f in self.files if self.usage_analytics.usage_data.get(f.path, {}).get('access_count', 0) == 0])} files
-• Files with 1-5 accesses: {len([f for f in self.files if 1 <= self.usage_analytics.usage_data.get(f.path, {}).get('access_count', 0) <= 5])} files
-• Files with 6+ accesses: {len([f for f in self.files if self.usage_analytics.usage_data.get(f.path, {}).get('access_count', 0) > 5])} files
-
-Optimization Suggestions:
-• Consider archiving or deleting files with 0 accesses
-• Move rarely accessed large files to cheaper storage
-• Keep frequently accessed files on fast storage"""
+        if not recommendations:
+            recommendations.append("✅ Your file organization looks good! Keep up the great work.")
         
-        self.storage_analysis_text.setPlainText(analysis_text)
+        self.recommendations_text.setPlainText("\n\n".join(f"• {rec}" for rec in recommendations))
+    
+    def _get_cleanup_candidates(self):
+        """Get files that are candidates for cleanup (large, rarely accessed)"""
+        candidates = []
+        usage_data = self.usage_analytics.usage_data
         
-        # Update category table
-        self.category_table.setRowCount(len(category_stats))
-        
-        for row, (category, stats) in enumerate(category_stats.items()):
-            # Category name
-            self.category_table.setItem(row, 0, QTableWidgetItem(category))
+        for file_info in self.files:
+            # Only consider files larger than 50MB
+            if file_info.size < 50 * 1024 * 1024:
+                continue
             
-            # File count
-            self.category_table.setItem(row, 1, QTableWidgetItem(str(stats["count"])))
+            # Check access history
+            file_usage = usage_data.get(file_info.path, {"access_count": 0, "last_accessed": None})
             
-            # Total size
-            size_gb = stats["size"] / (1024 ** 3)
-            if size_gb < 0.01:
-                size_str = f"{stats['size'] / (1024 ** 2):.1f} MB"
-            else:
-                size_str = f"{size_gb:.2f} GB"
-            self.category_table.setItem(row, 2, QTableWidgetItem(size_str))
+            # Never accessed or not accessed in 30 days
+            is_candidate = False
+            if file_usage["access_count"] == 0:
+                is_candidate = True
+            elif file_usage["last_accessed"]:
+                try:
+                    last_access = datetime.fromisoformat(file_usage["last_accessed"])
+                    cutoff_date = datetime.now() - timedelta(days=30)
+                    if last_access < cutoff_date:
+                        is_candidate = True
+                except (ValueError, TypeError):
+                    is_candidate = True
             
-            # Average access
-            avg_access = stats["total_access"] / stats["count"] if stats["count"] > 0 else 0
-            self.category_table.setItem(row, 3, QTableWidgetItem(f"{avg_access:.1f}"))
+            if is_candidate:
+                candidates.append(file_info)
+        
+        # Sort by size (largest first) and limit to top 20
+        return sorted(candidates, key=lambda f: f.size, reverse=True)[:20]
+    
+    def _calculate_type_breakdown(self):
+        """Calculate storage breakdown by file type"""
+        breakdown = {}
+        
+        for file_info in self.files:
+            file_type = file_info.extension.upper() if file_info.extension else "No Extension"
+            
+            if file_type not in breakdown:
+                breakdown[file_type] = {"count": 0, "size": 0}
+            
+            breakdown[file_type]["count"] += 1
+            breakdown[file_type]["size"] += file_info.size
+        
+        return breakdown
     
     def export_report(self):
-        """Export usage analytics report"""
-        from PySide6.QtWidgets import QFileDialog, QMessageBox
-        
+        """Export analytics report to file"""
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Usage Analytics Report",
-            "usage_analytics_report.txt",
+            self, "Export Analytics Report",
+            str(Path.home() / "usage_analytics_report.txt"),
             "Text Files (*.txt)"
         )
         
@@ -312,46 +421,43 @@ Optimization Suggestions:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write("USAGE ANALYTICS REPORT\n")
                 f.write("=" * 50 + "\n\n")
-                f.write(f"Generated: {QDate.currentDate().toString()}\n")
-                f.write(f"Total Files Analyzed: {len(self.files)}\n\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
                 
-                # Frequently accessed files
-                f.write("FREQUENTLY ACCESSED FILES:\n")
-                f.write("-" * 30 + "\n")
-                frequent_files = self.usage_analytics.get_frequently_accessed(10)
-                for file_path, data in frequent_files:
-                    name = os.path.basename(file_path)
-                    f.write(f"• {name} - {data['access_count']} accesses\n")
+                # Overview
+                f.write("STORAGE OVERVIEW\n")
+                f.write("-" * 20 + "\n")
+                f.write(f"Total Files: {self.total_files_label.text()}\n")
+                f.write(f"Total Size: {self.total_size_label.text()}\n")
+                f.write(f"Average File Size: {self.avg_file_size_label.text()}\n")
+                f.write(f"Largest File: {self.largest_file_label.text()}\n\n")
                 
-                f.write("\n")
+                # Usage stats
+                f.write("USAGE STATISTICS\n")
+                f.write("-" * 20 + "\n")
+                f.write(f"Files Accessed: {self.accessed_files_label.text()}\n")
+                f.write(f"Never Accessed: {self.never_accessed_label.text()}\n")
+                f.write(f"Recently Accessed: {self.recent_access_label.text()}\n")
+                f.write(f"Storage Cost: {self.storage_cost_label.text()}\n\n")
                 
-                # Cleanup suggestions
-                f.write("CLEANUP SUGGESTIONS:\n")
-                f.write("-" * 30 + "\n")
-                cleanup_files = self.usage_analytics.get_infrequently_accessed(10)
-                for file_path, data in cleanup_files:
-                    if os.path.exists(file_path):
-                        name = os.path.basename(file_path)
-                        size = os.path.getsize(file_path)
-                        if size > 1024 * 1024:
-                            size_str = f"{size / (1024 * 1024):.1f} MB"
-                        else:
-                            size_str = f"{size / 1024:.1f} KB"
-                        f.write(f"• {name} - {size_str} - {data['access_count']} accesses\n")
+                # Recommendations
+                f.write("RECOMMENDATIONS\n")
+                f.write("-" * 20 + "\n")
+                f.write(self.recommendations_text.toPlainText())
+                f.write("\n\n")
                 
-                f.write("\n")
-                
-                # Storage analysis
-                cost_per_gb = self.cost_per_gb.value() / 100.0
-                total_cost = self.usage_analytics.get_storage_cost(cost_per_gb)
-                f.write("STORAGE ANALYSIS:\n")
-                f.write("-" * 30 + "\n")
-                f.write(f"Estimated monthly storage cost: ${total_cost:.2f}\n")
-                f.write(f"Based on ${cost_per_gb:.2f} per GB\n")
+                # File type breakdown
+                f.write("FILE TYPE BREAKDOWN\n")
+                f.write("-" * 20 + "\n")
+                for row in range(self.breakdown_table.rowCount()):
+                    file_type = self.breakdown_table.item(row, 0).text()
+                    count = self.breakdown_table.item(row, 1).text()
+                    size = self.breakdown_table.item(row, 2).text()
+                    percentage = self.breakdown_table.item(row, 3).text()
+                    f.write(f"{file_type}: {count} files, {size} ({percentage})\n")
             
             QMessageBox.information(
                 self, "Report Exported",
-                f"Usage analytics report exported to:\n{file_path}"
+                f"Analytics report exported to:\n{file_path}"
             )
             
         except Exception as e:
@@ -359,3 +465,36 @@ Optimization Suggestions:
                 self, "Export Failed",
                 f"Failed to export report:\n{str(e)}"
             )
+    
+    def clear_usage_data(self):
+        """Clear all usage tracking data"""
+        confirm = QMessageBox.question(
+            self, "Clear Usage Data",
+            "Are you sure you want to clear all usage tracking data?\n\n"
+            "This will reset access counts and timestamps for all files.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if confirm == QMessageBox.Yes:
+            self.usage_analytics.usage_data.clear()
+            self.refresh_data()
+            QMessageBox.information(
+                self, "Data Cleared",
+                "Usage tracking data has been cleared."
+            )
+    
+    def _format_size(self, size_bytes):
+        """Format file size for display"""
+        if size_bytes < 1024:
+            return f"{size_bytes} B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f} KB"
+        elif size_bytes < 1024 * 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"
+        else:
+            return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+    
+    def closeEvent(self, event):
+        """Handle dialog close"""
+        self.update_timer.stop()
+        super().closeEvent(event)

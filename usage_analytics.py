@@ -94,3 +94,24 @@ class UsageAnalytics:
         
         if to_remove:
             self.save_usage_data()
+    
+    def get_access_statistics(self):
+        """Get comprehensive access statistics."""
+        total_files = len(self.usage_data)
+        accessed_files = len([d for d in self.usage_data.values() if d["access_count"] > 0])
+        never_accessed = total_files - accessed_files
+        
+        if total_files == 0:
+            return {
+                "total_files": 0,
+                "accessed_files": 0,
+                "never_accessed": 0,
+                "access_rate": 0.0
+            }
+        
+        return {
+            "total_files": total_files,
+            "accessed_files": accessed_files,
+            "never_accessed": never_accessed,
+            "access_rate": (accessed_files / total_files) * 100
+        }
