@@ -22,6 +22,7 @@ from theme_manager import theme_manager
 from bookmark_manager import BookmarkManager
 from preview_panel import PreviewPanel
 from search_history_manager import SearchHistoryManager
+from usage_analytics import UsageAnalytics
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -55,6 +56,9 @@ class MainWindow(QMainWindow):
         self.current_directory = self.app_settings.get("last_directory", str(Path.home()))
         self.files = []
         self.scanner_thread = None
+        
+        # Initialize usage analytics
+        self.usage_analytics = UsageAnalytics()
         
         # Apply saved theme
         saved_theme = self.app_settings.get("theme_internal", "light")
@@ -633,6 +637,9 @@ class MainWindow(QMainWindow):
             
         row = selected_rows[0].row()
         file_path = self.files[row].path
+        
+        # Record file access for analytics
+        self.usage_analytics.record_access(file_path)
         
         try:
             if platform.system() == 'Windows':
@@ -1304,6 +1311,8 @@ class MainWindow(QMainWindow):
             row = selected_indexes[0].row()
             if row < len(self.files):
                 file_info = self.files[row]
+                # Record preview access for analytics
+                self.usage_analytics.record_access(file_info.path)
                 self.preview_panel.preview_file(file_info)
         else:
             self.preview_panel.clear_preview()
@@ -1389,3 +1398,8 @@ class MainWindow(QMainWindow):
         dialog.setWindowTitle(dialog_title)
         dialog.exec()
     
+    def open_usage_analytics(self):
+        """Open usage analytics dialog"""
+        from usage_analytics_dialog import UsageAnalyticsDialog
+        dialog = UsageAnalyticsDialog(self.usage_analytics, self.files, self)
+        dialog.exec()
