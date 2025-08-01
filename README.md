@@ -245,6 +245,50 @@ When implementing new features, always follow this complete process:
 ### Documentation Standards
 Every feature must include comprehensive documentation covering purpose, implementation, testing, limitations, and future enhancements. See the `features/` directory for examples.
 
+## Distribution & Packaging
+
+### Building Executables
+
+To package the application for distribution, use PyInstaller:
+
+```
+pyinstaller --onefile --windowed main.py
+```
+
+This will create a standalone executable in the `dist/` directory.
+
+### Dependencies
+
+- Python 3.8+
+- PySide6
+- send2trash
+
+Install Python dependencies:
+
+```
+pip install -r requirements.txt
+```
+
+On Linux, install required system libraries:
+
+```
+sudo apt-get install libxcb-cursor0
+```
+
+### Installation
+
+1. Download the executable for your platform (Windows, macOS, Linux)
+2. Run the installer or executable
+3. Follow the instructions in this README for usage
+
+### License
+
+MIT License (see LICENSE file)
+
+### Changelog
+
+See `features/README.md` for version history and major changes.
+
 ## License
 
 MIT
