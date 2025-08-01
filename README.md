@@ -154,6 +154,33 @@ python main.py
 3. **Review previous searches**: See parameters, results, and timestamps
 4. **Replay searches**: Select an entry and click "Replay Search" to repeat with the same filters
 
+## Testing
+
+### Manual Testing
+- Each feature includes a dedicated testing checklist in `features/XX-feature-name.md`
+- Follow the steps for each feature to validate functionality and edge cases
+
+### Automated Testing
+- Run all unit tests:
+  ```
+  python -m unittest discover tests/
+  ```
+- Review test coverage and ensure all tests pass on your platform
+
+### Integration Testing
+- Use UI automation tools (e.g., pytest-qt) for workflow validation
+- Simulate user actions and verify multi-step operations
+
+### Edge Case & Regression Testing
+- Test with large datasets, unusual file names, and permissions
+- Re-test previously fixed bugs after new changes
+
+## Contributing to Testing
+
+- Add new tests for any new features or bug fixes
+- Update feature documentation with new test cases
+- Report any issues found during manual or automated testing
+
 ## Examples
 
 ### Finding Recent Large Videos
