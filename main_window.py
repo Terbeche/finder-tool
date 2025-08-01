@@ -388,6 +388,17 @@ class MainWindow(QMainWindow):
         # Search history actions
         self.search_history_action = QAction("Search History...", self)
         self.search_history_action.triggered.connect(self.open_search_history)
+        
+        # Security actions
+        self.security_scan_action = QAction("Security Scan...", self)
+        self.security_scan_action.triggered.connect(self.run_security_scan)
+        
+        self.file_integrity_action = QAction("Check File Integrity...", self)
+        self.file_integrity_action.triggered.connect(self.check_file_integrity)
+        
+        # Usage analytics actions
+        self.usage_analytics_action = QAction("Usage Analytics...", self)
+        self.usage_analytics_action.triggered.connect(self.open_usage_analytics)
     
     def create_menu(self):
         """Create application menu"""
@@ -416,6 +427,15 @@ class MainWindow(QMainWindow):
         
         # Add search history to Tools menu
         tools_menu.addAction(self.search_history_action)
+        
+        # Add security features to Tools menu
+        tools_menu.addSeparator()
+        security_menu = tools_menu.addMenu("Security")
+        security_menu.addAction(self.security_scan_action)
+        security_menu.addAction(self.file_integrity_action)
+        
+        # Add usage analytics to Tools menu
+        tools_menu.addAction(self.usage_analytics_action)
         
         # Actions menu
         actions_menu = menu_bar.addMenu("Actions")
@@ -1330,3 +1350,42 @@ class MainWindow(QMainWindow):
                 subprocess.run(['xdg-open', parent_dir])
         except Exception as e:
             QMessageBox.warning(self, "Error Opening Folder", str(e))
+    
+    def run_security_scan(self):
+        """Run security scan on current search results"""
+        if not self.files:
+            QMessageBox.information(self, "No Files", "Please search for files first before running security scan.")
+            return
+        
+        from security_dialog import SecurityDialog
+        dialog = SecurityDialog(self.files, self)
+        dialog.exec()
+    
+    def check_file_integrity(self):
+        """Check file integrity for selected files"""
+        selected_rows = set(index.row() for index in self.results_table.selectedIndexes())
+        
+        if selected_rows:
+            # Use selected files
+            selected_files = [self.files[row] for row in selected_rows]
+            dialog_title = f"Check Integrity of {len(selected_files)} Selected Files"
+        elif self.files:
+            # Use all files if none selected
+            confirm = QMessageBox.question(
+                self, "File Integrity Check",
+                f"No files are selected. Check integrity of all {len(self.files)} files in the results?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if confirm != QMessageBox.Yes:
+                return
+            selected_files = self.files
+            dialog_title = f"Check Integrity of All {len(self.files)} Files"
+        else:
+            QMessageBox.information(self, "No Files", "No files available to check. Please search for files first.")
+            return
+        
+        from security_dialog import SecurityDialog
+        dialog = SecurityDialog(selected_files, self, integrity_mode=True)
+        dialog.setWindowTitle(dialog_title)
+        dialog.exec()
+    
