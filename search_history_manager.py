@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 @dataclass
 class SearchHistoryEntry:
     """Represents a search history entry"""
-    timestamp: str
+    timestamp: str  # ISO format timestamp
     directory: str
     category: str = "All Files"
     min_size: int = 0
@@ -23,21 +23,21 @@ class SearchHistoryEntry:
     content_filter_enabled: bool = False
     content_search: str = ""
     
-    # Results summary
+    # Results
+    results: Optional[Dict[str, Any]] = None
+    
+    # For backward compatibility with older saved data
     files_found: int = 0
     total_size: int = 0
-    search_duration: float = 0.0  # in seconds
-    
-    # Optional description
-    description: str = ""
+    search_duration: float = 0.0
 
 class SearchHistoryManager:
-    """Manages search history storage and retrieval"""
+    """Manages search history entries"""
     
     def __init__(self, config_manager):
         self.config_manager = config_manager
         self.history: List[SearchHistoryEntry] = []
-        self.max_history_entries = 100  # Keep last 100 searches
+        self.max_entries = 100  # Keep last 100 searches
         self.load_history()
     
     def load_history(self):
@@ -45,55 +45,68 @@ class SearchHistoryManager:
         data = self.config_manager._load_config_data()
         
         if "search_history" in data:
-            try:
-                self.history = [
-                    SearchHistoryEntry(**entry_data) 
-                    for entry_data in data["search_history"]
-                ]
-                # Sort by timestamp, newest first
-                self.history.sort(key=lambda x: x.timestamp, reverse=True)
-            except Exception as e:
-                print(f"Error loading search history: {e}")
-                self.history = []
+            for entry_data in data["search_history"]:
+                try:
+                    # Filter out any unknown fields for backward compatibility
+                    valid_fields = {
+                        'timestamp', 'directory', 'category', 'min_size', 'max_size', 'max_depth',
+                        'date_filter_enabled', 'date_from', 'date_to', 'pattern_filter_enabled', 
+                        'filename_pattern', 'content_filter_enabled', 'content_search', 'results',
+                        'files_found', 'total_size', 'search_duration'
+                    }
+                    
+                    # Only include fields that exist in the SearchHistoryEntry dataclass
+                    filtered_data = {k: v for k, v in entry_data.items() if k in valid_fields}
+                    
+                    entry = SearchHistoryEntry(**filtered_data)
+                    self.history.append(entry)
+                except Exception as e:
+                    # Skip invalid entries but don't crash
+                    print(f"Skipping invalid search history entry: {e}")
+                    continue
     
     def save_history(self):
         """Save search history to config"""
-        try:
-            # Limit history size
-            if len(self.history) > self.max_history_entries:
-                self.history = self.history[:self.max_history_entries]
-            
-            data = self.config_manager._load_config_data()
-            data["search_history"] = [asdict(entry) for entry in self.history]
-            self.config_manager._save_config_data(data)
-        except Exception as e:
-            print(f"Error saving search history: {e}")
+        data = self.config_manager._load_config_data()
+        data["search_history"] = [asdict(entry) for entry in self.history]
+        self.config_manager._save_config_data(data)
     
-    def add_search(self, search_config: Dict[str, Any], results_summary: Dict[str, Any], description: str = "") -> bool:
-        """Add a new search to history"""
+    def add_search(self, search_config: Dict[str, Any], results_summary: Dict[str, Any]):
+        """Add a search to history"""
         try:
             entry = SearchHistoryEntry(
                 timestamp=datetime.now().isoformat(),
-                description=description,
-                **search_config,
-                **results_summary
+                directory=search_config["directory"],
+                category=search_config["category"],
+                min_size=search_config["min_size"],
+                max_size=search_config["max_size"],
+                max_depth=search_config["max_depth"],
+                date_filter_enabled=search_config["date_filter_enabled"],
+                date_from=search_config["date_from"],
+                date_to=search_config["date_to"],
+                pattern_filter_enabled=search_config["pattern_filter_enabled"],
+                filename_pattern=search_config["filename_pattern"],
+                content_filter_enabled=search_config["content_filter_enabled"],
+                content_search=search_config["content_search"],
+                results=results_summary
             )
             
-            # Add to beginning of list (newest first)
-            self.history.insert(0, entry)
+            self.history.append(entry)
             
-            # Remove duplicates based on search parameters (keep newest)
+            # Limit the number of entries
+            if len(self.history) > self.max_entries:
+                self.history = self.history[-self.max_entries:]
+            
+            # Remove exact duplicates (same configuration and directory)
             seen_configs = set()
             unique_history = []
             
             for hist_entry in self.history:
-                # Create a config signature for deduplication
                 config_signature = (
                     hist_entry.directory,
                     hist_entry.category,
                     hist_entry.min_size,
                     hist_entry.max_size,
-                    hist_entry.max_depth,
                     hist_entry.date_filter_enabled,
                     hist_entry.date_from,
                     hist_entry.date_to,
@@ -115,11 +128,9 @@ class SearchHistoryManager:
             print(f"Error adding search to history: {e}")
             return False
     
-    def get_history(self, limit: Optional[int] = None) -> List[SearchHistoryEntry]:
-        """Get search history, optionally limited"""
-        if limit:
-            return self.history[:limit]
-        return self.history.copy()
+    def get_entries(self) -> List[SearchHistoryEntry]:
+        """Get all search history entries"""
+        return self.history
     
     def get_recent_searches(self, days: int = 7) -> List[SearchHistoryEntry]:
         """Get searches from the last N days"""
@@ -165,17 +176,17 @@ class SearchHistoryManager:
         
         return [group[0] for _, group in popular_configs[:limit]]
     
-    def remove_entry(self, timestamp: str) -> bool:
-        """Remove a specific history entry"""
+    def delete_entry(self, timestamp: str) -> bool:
+        """Delete a search history entry by timestamp"""
         original_count = len(self.history)
-        self.history = [entry for entry in self.history if entry.timestamp != timestamp]
+        self.history = [e for e in self.history if e.timestamp != timestamp]
         
         if len(self.history) < original_count:
             self.save_history()
             return True
         return False
     
-    def clear_history(self) -> bool:
+    def clear_history(self):
         """Clear all search history"""
         try:
             self.history = []
@@ -208,9 +219,22 @@ class SearchHistoryManager:
             }
         
         total_searches = len(self.history)
-        total_files = sum(entry.files_found for entry in self.history)
-        total_size = sum(entry.total_size for entry in self.history)
-        total_time = sum(entry.search_duration for entry in self.history)
+        
+        # Calculate statistics from results
+        total_files = 0
+        total_size = 0
+        total_time = 0
+        valid_results = 0
+        
+        for entry in self.history:
+            if entry.results:
+                if "files_found" in entry.results:
+                    total_files += entry.results["files_found"]
+                if "total_size" in entry.results:
+                    total_size += entry.results["total_size"]
+                if "search_duration" in entry.results:
+                    total_time += entry.results["search_duration"]
+                    valid_results += 1
         
         # Most common directory
         dir_counts = {}
@@ -228,7 +252,7 @@ class SearchHistoryManager:
             "total_searches": total_searches,
             "average_files_found": total_files / total_searches if total_searches > 0 else 0,
             "total_data_scanned": total_size,
-            "average_search_time": total_time / total_searches if total_searches > 0 else 0,
+            "average_search_time": total_time / valid_results if valid_results > 0 else 0,
             "most_searched_directory": most_searched_dir,
             "most_used_category": most_used_category
         }
