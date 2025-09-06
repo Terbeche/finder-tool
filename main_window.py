@@ -24,6 +24,8 @@ from preview_panel import PreviewPanel
 from search_history_manager import SearchHistoryManager
 from usage_analytics import UsageAnalytics
 from performance_optimizer import PerformanceOptimizer
+from actions.batch_rename_dialog import BatchRenameDialog
+from actions.file_actions import FileActions
 
 DEFAULT_CATEGORIES = [
     FileCategory("Video", ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp"], "#e74c3c"),
@@ -64,6 +66,9 @@ class MainWindow(QMainWindow):
         # Initialize performance optimizer
         self.performance_optimizer = PerformanceOptimizer()
         self.performance_optimizer.start_monitoring()
+        
+        # Initialize file actions handler
+        self.file_actions = FileActions(self)
         
         # Apply saved theme
         saved_theme = self.app_settings.get("theme_internal", "light")
@@ -355,7 +360,7 @@ class MainWindow(QMainWindow):
         """Create application actions"""
         # File menu actions
         self.open_action = QAction("Open", self)
-        self.open_action.triggered.connect(self.open_selected_file)
+        self.open_action.triggered.connect(self.file_actions.open_selected_file)
         
         self.open_containing_folder_action = QAction("Open Containing Folder", self)
         self.open_containing_folder_action.triggered.connect(self.open_containing_folder)
@@ -366,13 +371,13 @@ class MainWindow(QMainWindow):
         
         # Actions menu
         self.delete_action = QAction("Delete Selected Files", self)
-        self.delete_action.triggered.connect(self.delete_selected_files)
+        self.delete_action.triggered.connect(self.file_actions.delete_selected_files)
         
         self.rename_action = QAction("Rename File", self)
-        self.rename_action.triggered.connect(self.rename_file)
+        self.rename_action.triggered.connect(self.file_actions.rename_file)
         
         self.batch_rename_action = QAction("Batch Rename...", self)
-        self.batch_rename_action.triggered.connect(self.batch_rename_files)
+        self.batch_rename_action.triggered.connect(self.file_actions.batch_rename_files)
         
         self.move_action = QAction("Move to Directory...", self)
         self.move_action.triggered.connect(self.move_selected_files)
@@ -736,29 +741,7 @@ class MainWindow(QMainWindow):
                 # Show dialog to categorize extensions
                 # (In a full implementation, we would have a dialog for this)
                 pass
-    
-    def open_selected_file(self):
-        """Open the selected file with default application"""
-        selected_rows = self.results_table.selectedIndexes()
-        if not selected_rows:
-            return
-            
-        row = selected_rows[0].row()
-        file_path = self.files[row].path
-        
-        # Record file access for analytics
-        self.usage_analytics.record_access(file_path)
-        
-        try:
-            if platform.system() == 'Windows':
-                os.startfile(file_path)
-            elif platform.system() == 'Darwin':  # macOS
-                subprocess.run(['open', file_path])
-            else:  # Linux
-                subprocess.run(['xdg-open', file_path])
-        except Exception as e:
-            QMessageBox.warning(self, "Error Opening File", str(e))
-    
+
     def open_containing_folder(self):
         """Open the folder containing the selected file"""
         selected_rows = self.results_table.selectedIndexes()
@@ -779,126 +762,7 @@ class MainWindow(QMainWindow):
                 subprocess.run(['xdg-open', parent_dir])
         except Exception as e:
             QMessageBox.warning(self, "Error Opening Folder", str(e))
-    
-    def delete_selected_files(self):
-        """Move selected files to trash"""
-        selected_rows = set(index.row() for index in self.results_table.selectedIndexes())
-        if not selected_rows:
-            return
-            
-        # Confirm move to trash
-        confirm = QMessageBox.warning(
-            self, "Move to Trash", 
-            f"Are you sure you want to move {len(selected_rows)} file(s) to trash?",
-            QMessageBox.Yes | QMessageBox.No
-        )
         
-        if confirm == QMessageBox.Yes:
-            # Move files to trash
-            try:
-                # First try to import send2trash
-                import send2trash
-                has_send2trash = True
-            except ImportError:
-                has_send2trash = False
-                response = QMessageBox.question(
-                    self, "Package Not Found", 
-                    "The send2trash package is required for safely moving files to trash.\n"
-                    "Would you like to permanently delete the files instead?\n\n"
-                    "To use the trash feature, install send2trash: pip install send2trash",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-                if response != QMessageBox.Yes:
-                    return
-            
-            # Delete/trash files
-            processed_count = 0
-            for row in sorted(selected_rows, reverse=True):
-                file_path = self.files[row].path
-                try:
-                    if has_send2trash:
-                        send2trash.send2trash(file_path)
-                    else:
-                        os.remove(file_path)
-                        
-                    self.results_table.removeRow(row)
-                    self.files.pop(row)
-                    processed_count += 1
-                except Exception as e:
-                    QMessageBox.warning(
-                        self, "Error Processing File", 
-                        f"Could not process {file_path}:\n{str(e)}"
-                    )
-            
-            # Update status
-            self.file_count_label.setText(f"{len(self.files)} files found")
-            action_word = "moved to trash" if has_send2trash else "deleted"
-            QMessageBox.information(self, "Operation Complete", f"Successfully {action_word} {processed_count} file(s).")
-    
-    def rename_file(self):
-        """Rename selected file"""
-        selected_rows = self.results_table.selectedIndexes()
-        if not selected_rows:
-            return
-            
-        row = selected_rows[0].row()
-        file_info = self.files[row]
-        
-        new_name, ok = QFileDialog.getSaveFileName(
-            self, "Rename File", file_info.path, "All Files (*.*)"
-        )
-        
-        if ok and new_name:
-            try:
-                shutil.move(file_info.path, new_name)
-                
-                # Update file info
-                file_info.path = new_name
-                file_info.name = os.path.basename(new_name)
-                
-                # Update table
-                self.results_table.setItem(row, 0, QTableWidgetItem(file_info.name))
-                self.results_table.setItem(row, 1, QTableWidgetItem(file_info.path))
-                
-                QMessageBox.information(self, "File Renamed", f"File renamed successfully to {file_info.name}")
-            except Exception as e:
-                QMessageBox.warning(
-                    self, "Error Renaming File", 
-                    f"Could not rename {file_info.path}:\n{str(e)}"
-                )
-    
-    def batch_rename_files(self):
-        """Open batch rename dialog"""
-        selected_rows = set(index.row() for index in self.results_table.selectedIndexes())
-        
-        if selected_rows:
-            # Use selected files
-            selected_files = [self.files[row] for row in selected_rows]
-            dialog_title = f"Batch Rename {len(selected_files)} Selected Files"
-        elif self.files:
-            # Use all files if none selected
-            confirm = QMessageBox.question(
-                self, "Batch Rename",
-                f"No files are selected. Rename all {len(self.files)} files in the results?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if confirm != QMessageBox.Yes:
-                return
-            selected_files = self.files
-            dialog_title = f"Batch Rename All {len(self.files)} Files"
-        else:
-            QMessageBox.information(self, "No Files", "No files available to rename. Please search for files first.")
-            return
-        
-        # Open batch rename dialog
-        from batch_rename_dialog import BatchRenameDialog
-        dialog = BatchRenameDialog(selected_files, self)
-        dialog.setWindowTitle(dialog_title)
-        
-        if dialog.exec():
-            # Refresh the results table to show new names
-            self.refresh_results_display()
-    
     def refresh_results_display(self):
         """Refresh the results table display"""
         # Update the table with current file information
