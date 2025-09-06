@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLabel, QLineEdit, QComboBox, QSpinBox,
     QMessageBox, QMenu, QProgressBar, QGroupBox, QAbstractItemView,
-    QCheckBox, QDateEdit, QDialog, QFormLayout, QDialogButtonBox, QSplitter
+    QCheckBox, QDateEdit, QDialog, QFormLayout, QDialogButtonBox, QSplitter, QStyle
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QAction, QColor
@@ -104,11 +104,15 @@ class MainWindow(QMainWindow):
         bookmarks_layout.addWidget(manage_bookmarks_btn)
         
         # Quick save buttons
-        save_location_btn = QPushButton("📍 Save Location")
+        pixmap = QStyle.SP_DirIcon
+        save_location_icon = self.style().standardIcon(pixmap)
+        save_location_btn = QPushButton(save_location_icon, " Save Location")
         save_location_btn.setToolTip("Save current directory as bookmark")
         save_location_btn.clicked.connect(self.quick_save_location)
         
-        save_search_btn = QPushButton("💾 Save Search")
+        pixmap = QStyle.SP_DialogSaveButton
+        save_search_icon = self.style().standardIcon(pixmap)
+        save_search_btn = QPushButton(save_search_icon, " Save Search")
         save_search_btn.setToolTip("Save current search settings as preset")
         save_search_btn.clicked.connect(self.quick_save_search)
         
@@ -1318,7 +1322,7 @@ class MainWindow(QMainWindow):
         # Generate a default name
         default_name = Path(directory).name or "Root"
         
-        name, ok = QLineEdit().text(), True
+        name, _ = QLineEdit().text(), True
         # Simple input dialog
         dialog = QDialog(self)
         dialog.setWindowTitle("Save Location Bookmark")
