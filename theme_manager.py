@@ -91,7 +91,7 @@ class ThemeManager(QObject):
                 }
                 
                 /* Input Fields */
-                QLineEdit, QSpinBox, QComboBox, QDateEdit {
+                QLineEdit, QComboBox, QDateEdit {
                     padding: 8px 12px;
                     border: 2px solid #E0E0E0;
                     border-radius: 6px;
@@ -99,7 +99,19 @@ class ThemeManager(QObject):
                     color: #212121;
                     selection-background-color: #2196F3;
                 }
-                QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+                QSpinBox {
+                    padding: 8px 12px;
+                    border: 2px solid #E0E0E0;
+                    border-radius: 6px;
+                    /* background-color: #FFFFFF; */
+                    color: #212121;
+                    selection-background-color: #2196F3;
+                }
+                QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                    border-color: #2196F3;
+                    outline: none;
+                }
+                QSpinBox:focus {
                     border-color: #2196F3;
                     outline: none;
                 }
@@ -130,8 +142,12 @@ class ThemeManager(QObject):
                 }
                 
                 /* Disabled state styling */
-                QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {
+                QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled {
                     background-color: #F5F5F5;
+                    color: #BDBDBD;
+                    border-color: #E0E0E0;
+                }
+                QSpinBox:disabled {
                     color: #BDBDBD;
                     border-color: #E0E0E0;
                 }
@@ -340,7 +356,7 @@ class ThemeManager(QObject):
                 }
                 
                 /* Input Fields */
-                QLineEdit, QSpinBox, QComboBox, QDateEdit {
+                QLineEdit, QComboBox, QDateEdit {
                     padding: 8px 12px;
                     border: 2px solid #333333;
                     border-radius: 6px;
@@ -348,7 +364,19 @@ class ThemeManager(QObject):
                     color: #FFFFFF;
                     selection-background-color: #BB86FC;
                 }
-                QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+                QSpinBox {
+                    padding: 8px 12px;
+                    border: 2px solid #333333;
+                    border-radius: 6px;
+                    /* background-color: #2D2D2D; */
+                    color: #FFFFFF;
+                    selection-background-color: #BB86FC;
+                }
+                QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                    border-color: #BB86FC;
+                    outline: none;
+                }
+                QSpinBox:focus {
                     border-color: #BB86FC;
                     outline: none;
                 }
@@ -379,8 +407,12 @@ class ThemeManager(QObject):
                 }
                 
                 /* Disabled state styling */
-                QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {
+                QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled {
                     background-color: #1A1A1A;
+                    color: #555555;
+                    border-color: #2A2A2A;
+                }
+                QSpinBox:disabled {
                     color: #555555;
                     border-color: #2A2A2A;
                 }
@@ -651,7 +683,7 @@ class ThemeManager(QObject):
                 }
                 
                 /* Input Fields */
-                QLineEdit, QSpinBox, QComboBox, QDateEdit {
+                QLineEdit, QComboBox, QDateEdit {
                     padding: 8px 12px;
                     border: 2px solid #A5D6A7;
                     border-radius: 8px;
@@ -659,7 +691,20 @@ class ThemeManager(QObject):
                     color: #1B5E20;
                     selection-background-color: #4CAF50;
                 }
-                QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+                QSpinBox {
+                    padding: 8px 12px;
+                    border: 2px solid #A5D6A7;
+                    border-radius: 8px;
+                    /* background-color: #FFFFFF; */
+                    color: #1B5E20;
+                    selection-background-color: #4CAF50;
+                }
+                QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                    border-color: #4CAF50;
+                    outline: none;
+                    background-color: #F1F8E9;
+                }
+                QSpinBox:focus {
                     border-color: #4CAF50;
                     outline: none;
                     background-color: #F1F8E9;
@@ -691,8 +736,12 @@ class ThemeManager(QObject):
                 }
                 
                 /* Disabled state styling */
-                QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {
+                QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled {
                     background-color: #F0F0F0;
+                    color: #A5D6A7;
+                    border-color: #C8E6C9;
+                }
+                QSpinBox:disabled {
                     color: #A5D6A7;
                     border-color: #C8E6C9;
                 }
@@ -849,6 +898,59 @@ class ThemeManager(QObject):
         # Apply stylesheet to application
         app = QApplication.instance()
         if app:
+            # Clear existing stylesheet first to prevent conflicts
+            app.setStyleSheet("")
+            app.processEvents()  # Process the clear
+            
+            # Set appropriate QPalette for each theme to override system colors
+            palette = QPalette()
+            
+            if theme_name == "dark":
+                # Dark theme - white text
+                palette.setColor(QPalette.WindowText, QColor("#FFFFFF"))  # Normal text
+                palette.setColor(QPalette.Text, QColor("#FFFFFF"))        # Input text
+                palette.setColor(QPalette.ButtonText, QColor("#FFFFFF"))  # Button text
+                palette.setColor(QPalette.BrightText, QColor("#FFFFFF"))  # Bright text
+                palette.setColor(QPalette.PlaceholderText, QColor("#B3B3B3"))  # Placeholder text
+                palette.setColor(QPalette.Link, QColor("#BB86FC"))        # Links
+                palette.setColor(QPalette.LinkVisited, QColor("#985EFF")) # Visited links
+                
+                # Set background colors
+                palette.setColor(QPalette.Window, QColor("#121212"))      # Window background
+                palette.setColor(QPalette.Base, QColor("#1E1E1E"))        # Input background
+                palette.setColor(QPalette.Button, QColor("#2D2D2D"))      # Button background
+                
+            elif theme_name == "light":
+                # Light theme - dark text
+                palette.setColor(QPalette.WindowText, QColor("#212121"))  # Normal text
+                palette.setColor(QPalette.Text, QColor("#212121"))        # Input text
+                palette.setColor(QPalette.ButtonText, QColor("#212121"))  # Button text
+                palette.setColor(QPalette.BrightText, QColor("#212121"))  # Bright text
+                palette.setColor(QPalette.PlaceholderText, QColor("#757575"))  # Placeholder text
+                palette.setColor(QPalette.Link, QColor("#2196F3"))        # Links
+                palette.setColor(QPalette.LinkVisited, QColor("#1976D2")) # Visited links
+                
+                # Set background colors
+                palette.setColor(QPalette.Window, QColor("#FFFFFF"))      # Window background
+                palette.setColor(QPalette.Base, QColor("#FFFFFF"))        # Input background
+                palette.setColor(QPalette.Button, QColor("#F8F9FA"))      # Button background
+                
+            elif theme_name == "nature":
+                # Nature theme - green-tinted dark text
+                palette.setColor(QPalette.WindowText, QColor("#1B5E20"))  # Normal text
+                palette.setColor(QPalette.Text, QColor("#1B5E20"))        # Input text
+                palette.setColor(QPalette.ButtonText, QColor("#1B5E20"))  # Button text
+                palette.setColor(QPalette.BrightText, QColor("#1B5E20"))  # Bright text
+                palette.setColor(QPalette.PlaceholderText, QColor("#81C784"))  # Placeholder text
+                palette.setColor(QPalette.Link, QColor("#4CAF50"))        # Links
+                palette.setColor(QPalette.LinkVisited, QColor("#388E3C")) # Visited links
+                
+                # Set background colors
+                palette.setColor(QPalette.Window, QColor("#F1F8E9"))      # Window background
+                palette.setColor(QPalette.Base, QColor("#FFFFFF"))        # Input background
+                palette.setColor(QPalette.Button, QColor("#E8F5E8"))      # Button background
+            
+            app.setPalette(palette)
             app.setStyleSheet(theme["stylesheet"])
         
         self.theme_changed.emit(theme_name)
