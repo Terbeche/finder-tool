@@ -1,5 +1,5 @@
 import unittest
-from file_info import FileInfo
+from core.file_info import FileInfo
 from datetime import datetime
 
 class TestFileInfo(unittest.TestCase):

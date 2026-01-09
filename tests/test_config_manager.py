@@ -1,5 +1,5 @@
 import unittest
-from config_manager import ConfigManager
+from core.config_manager import ConfigManager
 
 class TestConfigManager(unittest.TestCase):
     def setUp(self):

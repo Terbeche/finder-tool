@@ -1,5 +1,5 @@
 import unittest
-from usage_analytics import UsageAnalytics
+from managers.usage_analytics import UsageAnalytics
 import tempfile
 import os
 

@@ -1,5 +1,5 @@
 import unittest
-from file_category import FileCategory
+from core.file_category import FileCategory
 
 class TestFileCategory(unittest.TestCase):
     def test_matches(self):
