@@ -6,10 +6,11 @@ from PySide6.QtCore import Qt, QSize, QThread, Signal
 from PySide6.QtGui import QPixmap, QFont, QTextCursor
 from pathlib import Path
 import os
-from media_intelligence import get_video_metadata, get_audio_metadata
-from cloud_integration import compare_files, suggest_migration, list_local_files, list_cloud_files
+from services.media_intelligence import get_video_metadata, get_audio_metadata
+from services.cloud_integration import compare_files, suggest_migration, list_local_files, list_cloud_files
 import hashlib
 import tempfile
+from actions.file_actions import FileActions
 
 class ImageLoaderThread(QThread):
     """Thread for loading images without blocking UI"""
@@ -402,7 +403,7 @@ class PreviewPanel(QWidget):
         # Get the main window by traversing up the widget hierarchy
         main_window = self.get_main_window()
         if main_window and hasattr(main_window, 'open_file_by_path'):
-            main_window.open_file_by_path(self.current_file.path)
+            self.file_actions.open_file_by_path(self.current_file.path)
         else:
             # Fallback: try to open file directly
             self.open_file_fallback(self.current_file.path)
@@ -415,7 +416,7 @@ class PreviewPanel(QWidget):
         # Get the main window by traversing up the widget hierarchy
         main_window = self.get_main_window()
         if main_window and hasattr(main_window, 'open_folder_by_path'):
-            main_window.open_folder_by_path(self.current_file.path)
+            self.file_actions.open_folder_by_path(self.current_file.path)
         else:
             # Fallback: try to open folder directly
             self.open_folder_fallback(self.current_file.path)
