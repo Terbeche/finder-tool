@@ -30,7 +30,7 @@ A powerful tool for finding and organizing files on your system with advanced se
 - **Real-time Results**: See files as they're found during scanning
 - **Progress Tracking**: Visual progress indicators for all operations
 - **Customizable Settings**: Configure categories, colors, themes, and default behaviors
-- **Theme Support**: Light, Dark, and Nature themes with immediate preview
+- **Professional Themes**: 5 themes (Light, Dark, Nature, Blue, Midnight) with improved contrast and accessibility
 
 ## File Preview Capabilities
 
