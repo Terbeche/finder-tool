@@ -1,6 +1,6 @@
 from PySide6.QtCore import QThread, Signal
 from pathlib import Path
-from file_info import FileInfo
+from core.file_info import FileInfo
 import re
 from datetime import datetime, date
 

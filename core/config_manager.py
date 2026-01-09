@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 import platform
-from file_category import FileCategory
+from core.file_category import FileCategory
 
 class ConfigManager:
     """Manages application configuration and persistence"""

@@ -4,8 +4,8 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QWidget, QHBoxL
                               QMessageBox, QComboBox, QLabel)
 from PySide6.QtGui import QColor, QFont
 
-from category_dialog import CategoryDialog
-from theme_manager import theme_manager
+from dialogs.category_dialog import CategoryDialog
+from services.theme_manager import theme_manager
 
 class SettingsDialog(QDialog):
     """Dialog for application settings"""
