@@ -12,7 +12,9 @@ class ThemeManager(QObject):
         self.themes = {
             "light": self._get_light_theme(),
             "dark": self._get_dark_theme(),
-            "nature": self._get_nature_theme()
+            "nature": self._get_nature_theme(),
+            "pro_blue": self._get_pro_blue_theme(),
+            "midnight": self._get_midnight_theme()
         }
     
     def _get_light_theme(self):
@@ -886,6 +888,88 @@ class ThemeManager(QObject):
                 }
             """
         }
+
+    def _get_pro_blue_theme(self):
+        """Blue theme configuration"""
+        return {
+            "name": "Blue",
+            "colors": {
+                "background": "#FFFFFF",
+                "surface": "#E3F2FD",
+                "primary": "#0D47A1",
+                "primary_dark": "#0A2472",
+                "secondary": "#1976D2",
+                "accent": "#FFC107",
+                "text_primary": "#0D47A1",
+                "text_secondary": "#1565C0",
+                "text_hint": "#64B5F6",
+                "border": "#BBDEFB",
+                "border_focus": "#0D47A1",
+                "success": "#43A047",
+                "warning": "#FFB300",
+                "error": "#D32F2F",
+                "info": "#0288D1"
+            },
+            "stylesheet": """
+                QMainWindow { background-color: #FFFFFF; color: #0D47A1; }
+                QGroupBox { border: 2px solid #BBDEFB; border-radius: 8px; margin: 8px 0px; padding-top: 10px; background-color: #E3F2FD; }
+                QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 8px 0 8px; color: #0D47A1; }
+                QPushButton { background-color: #0D47A1; border: none; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; }
+                QPushButton:hover { background-color: #1976D2; }
+                QPushButton[class="secondary"] { background-color: #FFFFFF; color: #0D47A1; border: 2px solid #0D47A1; }
+                QLineEdit, QComboBox, QDateEdit, QSpinBox { padding: 8px 12px; border: 2px solid #BBDEFB; border-radius: 6px; background-color: white; color: #0D47A1; }
+                QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus { border-color: #0D47A1; }
+                QTableWidget { gridline-color: #BBDEFB; background-color: white; alternate-background-color: #E3F2FD; selection-background-color: #BBDEFB; color: #0D47A1; }
+                QHeaderView::section { background-color: #0D47A1; color: white; padding: 8px; border: none; border-bottom: 2px solid #FFC107; font-weight: bold; }
+                QProgressBar { border: 2px solid #BBDEFB; border-radius: 8px; text-align: center; background-color: #F5F5F5; }
+                QProgressBar::chunk { background-color: #0D47A1; }
+                QMenuBar { background-color: #E3F2FD; color: #0D47A1; }
+                QMenu { background-color: white; border: 1px solid #BBDEFB; color: #0D47A1; }
+                QMenu::item:selected { background-color: #BBDEFB; }
+                QStatusBar { background-color: #E3F2FD; color: #1565C0; }
+            """
+        }
+
+    def _get_midnight_theme(self):
+        """Midnight theme configuration"""
+        return {
+            "name": "Midnight",
+            "colors": {
+                "background": "#0A0E21",
+                "surface": "#121833",
+                "primary": "#1A237E",
+                "primary_dark": "#000051",
+                "secondary": "#3949AB",
+                "accent": "#00B8D4",
+                "text_primary": "#E0E0E0",
+                "text_secondary": "#B0BEC5",
+                "text_hint": "#546E7A",
+                "border": "#283593",
+                "border_focus": "#00B8D4",
+                "success": "#00C853",
+                "warning": "#FFD600",
+                "error": "#FF1744",
+                "info": "#00B0FF"
+            },
+            "stylesheet": """
+                QMainWindow { background-color: #0A0E21; color: #E0E0E0; }
+                QGroupBox { border: 2px solid #283593; border-radius: 10px; margin: 8px 0px; padding-top: 10px; background-color: #121833; color: #E0E0E0; }
+                QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 8px 0 8px; color: #00B8D4; }
+                QPushButton { background-color: #1A237E; border: none; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; }
+                QPushButton:hover { background-color: #3949AB; }
+                QPushButton[class="secondary"] { background-color: #121833; color: #00B8D4; border: 2px solid #00B8D4; }
+                QLineEdit, QComboBox, QDateEdit, QSpinBox { padding: 8px 12px; border: 2px solid #283593; border-radius: 6px; background-color: #0A0E21; color: #E0E0E0; }
+                QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus { border-color: #00B8D4; }
+                QTableWidget { gridline-color: #283593; background-color: #0A0E21; alternate-background-color: #121833; selection-background-color: #283593; color: #E0E0E0; }
+                QHeaderView::section { background-color: #1A237E; color: white; padding: 8px; border: none; border-bottom: 2px solid #00B8D4; font-weight: bold; }
+                QProgressBar { border: 2px solid #283593; border-radius: 8px; text-align: center; background-color: #121833; color: #E0E0E0; }
+                QProgressBar::chunk { background-color: #00B8D4; }
+                QMenuBar { background-color: #121833; color: #E0E0E0; }
+                QMenu { background-color: #121833; border: 1px solid #283593; color: #E0E0E0; }
+                QMenu::item:selected { background-color: #283593; }
+                QStatusBar { background-color: #121833; color: #B0BEC5; }
+            """
+        }
     
     def apply_theme(self, theme_name):
         """Apply a theme to the application"""
@@ -949,6 +1033,28 @@ class ThemeManager(QObject):
                 palette.setColor(QPalette.Window, QColor("#F1F8E9"))      # Window background
                 palette.setColor(QPalette.Base, QColor("#FFFFFF"))        # Input background
                 palette.setColor(QPalette.Button, QColor("#E8F5E8"))      # Button background
+            
+            elif theme_name == "pro_blue":
+                # Blue - Blue header, light background
+                palette.setColor(QPalette.WindowText, QColor("#0D47A1"))
+                palette.setColor(QPalette.Text, QColor("#0D47A1"))
+                palette.setColor(QPalette.ButtonText, QColor("#FFFFFF"))
+                palette.setColor(QPalette.Window, QColor("#FFFFFF"))
+                palette.setColor(QPalette.Base, QColor("#FFFFFF"))
+                palette.setColor(QPalette.Button, QColor("#0D47A1"))
+                palette.setColor(QPalette.Highlight, QColor("#BBDEFB"))
+                palette.setColor(QPalette.HighlightedText, QColor("#0D47A1"))
+                
+            elif theme_name == "midnight":
+                # Midnight - Dark background with cyan/purple accents
+                palette.setColor(QPalette.WindowText, QColor("#E0E0E0"))
+                palette.setColor(QPalette.Text, QColor("#E0E0E0"))
+                palette.setColor(QPalette.ButtonText, QColor("#FFFFFF"))
+                palette.setColor(QPalette.Window, QColor("#0A0E21"))
+                palette.setColor(QPalette.Base, QColor("#0A0E21"))
+                palette.setColor(QPalette.Button, QColor("#1A237E"))
+                palette.setColor(QPalette.Highlight, QColor("#283593"))
+                palette.setColor(QPalette.HighlightedText, QColor("#00B8D4"))
             
             app.setPalette(palette)
             app.setStyleSheet(theme["stylesheet"])

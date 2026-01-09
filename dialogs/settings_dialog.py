@@ -129,7 +129,9 @@ class SettingsDialog(QDialog):
         theme_map = {
             "Light": "light",
             "Dark": "dark", 
-            "Nature": "nature"
+            "Nature": "nature",
+            "Professional Blue": "pro_blue",
+            "Midnight": "midnight"
         }
         
         internal_name = theme_map.get(theme_name, "light")
@@ -139,7 +141,9 @@ class SettingsDialog(QDialog):
         theme_descriptions = {
             "Light": "Clean and bright interface with blue accents",
             "Dark": "Easy on the eyes with purple highlights",
-            "Nature": "Relaxing green theme inspired by nature"
+            "Nature": "Relaxing green theme inspired by nature",
+            "Professional Blue": "Corporate blue theme for a professional look",
+            "Midnight": "Deep indigo theme with cyan accents"
         }
         
         description = theme_descriptions.get(theme_name, "Theme preview")
@@ -213,7 +217,9 @@ class SettingsDialog(QDialog):
         theme_map = {
             "Light": "light",
             "Dark": "dark", 
-            "Nature": "nature"
+            "Nature": "nature",
+            "Professional Blue": "pro_blue",
+            "Midnight": "midnight"
         }
         
         selected_theme = self.theme_combo.currentText()
