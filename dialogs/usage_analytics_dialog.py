@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from pathlib import Path
+from core.utils import format_size
 import time
 from datetime import datetime, timedelta
 
@@ -201,8 +202,8 @@ class UsageAnalyticsDialog(QDialog):
         largest_file = max(self.files, key=lambda f: f.size) if self.files else None
         
         self.total_files_label.setText(str(total_files))
-        self.total_size_label.setText(self._format_size(total_size))
-        self.avg_file_size_label.setText(self._format_size(avg_size))
+        self.total_size_label.setText(format_size(total_size))
+        self.avg_file_size_label.setText(format_size(avg_size))
         self.largest_file_label.setText(largest_file.name if largest_file else "None")
         
         # Usage statistics (now using get_access_statistics)
@@ -289,7 +290,7 @@ class UsageAnalyticsDialog(QDialog):
             
             self.breakdown_table.setItem(row, 0, QTableWidgetItem(file_type))
             self.breakdown_table.setItem(row, 1, QTableWidgetItem(str(count)))
-            self.breakdown_table.setItem(row, 2, QTableWidgetItem(self._format_size(size)))
+            self.breakdown_table.setItem(row, 2, QTableWidgetItem(format_size(size)))
             self.breakdown_table.setItem(row, 3, QTableWidgetItem(f"{percentage:.1f}%"))
         
         # Largest files
@@ -322,7 +323,7 @@ class UsageAnalyticsDialog(QDialog):
             total_cleanup_size = sum(f.size for f in cleanup_candidates)
             recommendations.append(
                 f"🗑️ Consider removing {len(cleanup_candidates)} rarely accessed large files "
-                f"to save {self._format_size(total_cleanup_size)}"
+                f"to save {format_size(total_cleanup_size)}"
             )
         
         # Analyze file types
@@ -331,7 +332,7 @@ class UsageAnalyticsDialog(QDialog):
             largest_type = max(type_breakdown.items(), key=lambda x: x[1]["size"])
             recommendations.append(
                 f"📊 {largest_type[0]} files take up the most space: "
-                f"{self._format_size(largest_type[1]['size'])} ({largest_type[1]['count']} files)"
+                f"{format_size(largest_type[1]['size'])} ({largest_type[1]['count']} files)"
             )
         
         # Storage cost analysis
@@ -482,17 +483,6 @@ class UsageAnalyticsDialog(QDialog):
                 self, "Data Cleared",
                 "Usage tracking data has been cleared."
             )
-    
-    def _format_size(self, size_bytes):
-        """Format file size for display"""
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.1f} KB"
-        elif size_bytes < 1024 * 1024 * 1024:
-            return f"{size_bytes / (1024 * 1024):.1f} MB"
-        else:
-            return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
     
     def closeEvent(self, event):
         """Handle dialog close"""
