@@ -130,7 +130,7 @@ class SettingsDialog(QDialog):
             "Light": "light",
             "Dark": "dark", 
             "Nature": "nature",
-            "Professional Blue": "pro_blue",
+            "Blue": "pro_blue",
             "Midnight": "midnight"
         }
         
@@ -142,7 +142,7 @@ class SettingsDialog(QDialog):
             "Light": "Clean and bright interface with blue accents",
             "Dark": "Easy on the eyes with purple highlights",
             "Nature": "Relaxing green theme inspired by nature",
-            "Professional Blue": "Corporate blue theme for a professional look",
+            "Blue": "Corporate blue theme for a professional look",
             "Midnight": "Deep indigo theme with cyan accents"
         }
         
@@ -218,7 +218,7 @@ class SettingsDialog(QDialog):
             "Light": "light",
             "Dark": "dark", 
             "Nature": "nature",
-            "Professional Blue": "pro_blue",
+            "Blue": "blue",
             "Midnight": "midnight"
         }
         
