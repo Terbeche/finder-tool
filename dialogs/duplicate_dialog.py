@@ -6,7 +6,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from duplicate_detector import DuplicateDetector
+from scanners.duplicate_detector import DuplicateDetector
+from core.utils import format_size
 import os
 from pathlib import Path
 
@@ -184,14 +185,14 @@ class DuplicateDialog(QDialog):
             group_item = QTreeWidgetItem(self.results_tree)
             group_item.setText(0, f"Group {len(self.results_tree.topLevelItems()) + 1}")
             group_item.setText(1, f"{len(files)} files")
-            group_item.setText(2, self._format_size(files[0].size))
-            group_item.setText(3, self._format_size(wasted_space))
+            group_item.setText(2, format_size(files[0].size))
+            group_item.setText(3, format_size(wasted_space))
             group_item.setData(0, Qt.UserRole, group_key)
         
         self.results_tree.expandAll()
         self.status_label.setText(
             f"Found {total_groups} duplicate groups with {total_duplicates} files. "
-            f"Potential space savings: {self._format_size(total_wasted)}"
+            f"Potential space savings: {format_size(total_wasted)}"
         )
     
     def on_group_selected(self):
@@ -273,7 +274,7 @@ class DuplicateDialog(QDialog):
         confirm = QMessageBox.question(
             self, "Confirm Deletion",
             f"Delete {len(selected_files)} duplicate files?\n"
-            f"Total size: {self._format_size(total_size)}\n\n"
+            f"Total size: {format_size(total_size)}\n\n"
             f"This action cannot be undone!",
             QMessageBox.Yes | QMessageBox.No
         )
@@ -308,19 +309,9 @@ class DuplicateDialog(QDialog):
             QMessageBox.information(
                 self, "Deletion Complete",
                 f"Successfully deleted {deleted_count} duplicate files.\n"
-                f"Space saved: {self._format_size(saved_space)}"
+                f"Space saved: {format_size(saved_space)}"
             )
         
         # Refresh the view
         self.start_detection()
-    
-    def _format_size(self, size_bytes):
-        """Format file size for display"""
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.1f} KB"
-        elif size_bytes < 1024 * 1024 * 1024:
-            return f"{size_bytes / (1024 * 1024):.1f} MB"
-        else:
-            return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+

@@ -7,17 +7,18 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
-from bookmark_manager import DirectoryBookmark, SearchPreset
+from managers.bookmark_manager import DirectoryBookmark, SearchPreset
 import os
 from pathlib import Path
 
 class BookmarkDialog(QDialog):
     """Dialog for managing bookmarks and search presets"""
-    
-    def __init__(self, bookmark_manager, main_window, parent=None):
+
+    def __init__(self, bookmark_manager, main_window, ui_manager, parent=None):
         super().__init__(parent)
         self.bookmark_manager = bookmark_manager
         self.main_window = main_window
+        self.ui_manager = ui_manager
         self.setWindowTitle("Manage Bookmarks")
         self.setModal(True)
         self.resize(800, 600)
@@ -341,9 +342,9 @@ class BookmarkDialog(QDialog):
     def get_current_search_config(self):
         """Extract current search configuration from main window"""
         mw = self.main_window
-        
+        ui = self.ui_manager
         # Get advanced filter settings
-        advanced_filters = mw.get_advanced_filters()
+        advanced_filters = ui.get_advanced_filters()
         
         return {
             "category": mw.category_combo.currentText(),
@@ -380,7 +381,8 @@ class BookmarkDialog(QDialog):
     def apply_preset_to_ui(self, preset: SearchPreset):
         """Apply preset configuration to main window UI"""
         mw = self.main_window
-        
+        ui = self.ui_manager
+
         # Set basic filters
         category_index = mw.category_combo.findText(preset.category)
         if category_index >= 0:
@@ -404,10 +406,10 @@ class BookmarkDialog(QDialog):
         mw.content_edit.setText(preset.content_search or "")
         
         # Update filter control states
-        mw.toggle_date_filter(preset.date_filter_enabled)
-        mw.toggle_pattern_filter(preset.pattern_filter_enabled)
-        mw.toggle_content_filter(preset.content_filter_enabled)
-    
+        ui.toggle_date_filter(preset.date_filter_enabled)
+        ui.toggle_pattern_filter(preset.pattern_filter_enabled)
+        ui.toggle_content_filter(preset.content_filter_enabled)
+
     def edit_preset(self):
         """Edit selected preset with full configuration dialog"""
         selected_row = self.presets_table.currentRow()

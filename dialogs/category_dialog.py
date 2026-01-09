@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QDialogButtonBox
-from file_category import FileCategory
+from core.file_category import FileCategory
 
 
 class CategoryDialog(QDialog):

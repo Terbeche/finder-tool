@@ -6,17 +6,20 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
-from search_history_manager import SearchHistoryEntry
+from managers.search_history_manager import SearchHistoryEntry
 from datetime import datetime
 from pathlib import Path
+from actions.file_actions import FileActions
+from core.utils import format_size
 
 class SearchHistoryDialog(QDialog):
     """Dialog for viewing and managing search history"""
-    
-    def __init__(self, history_manager, main_window, parent=None):
+
+    def __init__(self, history_manager, main_window, ui_manager, parent=None):
         super().__init__(parent)
         self.history_manager = history_manager
         self.main_window = main_window
+        self.ui_manager = ui_manager
         self.setWindowTitle("Search History")
         self.setModal(True)
         self.resize(1000, 700)
@@ -381,7 +384,7 @@ class SearchHistoryDialog(QDialog):
             details.append(f"• Found {files_found} files")
             
             total_size = entry.results.get("total_size", 0)
-            details.append(f"• Total size: {self._format_size(total_size)}")
+            details.append(f"• Total size: {format_size(total_size)}")
             
             duration = entry.results.get("search_duration", 0)
             details.append(f"• Search time: {duration:.2f} seconds")
@@ -429,12 +432,13 @@ class SearchHistoryDialog(QDialog):
         
         # Close dialog and trigger search
         self.accept()
-        self.main_window.start_search()
+        self.main_window.file_actions.start_search()
     
     def _apply_search_config(self, entry: SearchHistoryEntry):
         """Apply search configuration to main window"""
         mw = self.main_window
-        
+        ui = self.ui_manager
+
         # Set directory
         mw.path_edit.setText(entry.directory)
         mw.current_directory = entry.directory
@@ -463,9 +467,9 @@ class SearchHistoryDialog(QDialog):
         mw.content_edit.setText(entry.content_search or "")
         
         # Update advanced filter control states
-        mw.toggle_date_filter(entry.date_filter_enabled)
-        mw.toggle_pattern_filter(entry.pattern_filter_enabled)
-        mw.toggle_content_filter(entry.content_filter_enabled)
+        ui.toggle_date_filter(entry.date_filter_enabled)
+        ui.toggle_pattern_filter(entry.pattern_filter_enabled)
+        ui.toggle_content_filter(entry.content_filter_enabled)
     
     def delete_search(self):
         """Delete the selected search entry"""
@@ -582,7 +586,7 @@ class SearchHistoryDialog(QDialog):
                         timestamp, 
                         entry.directory, 
                         files_found,
-                        self._format_size(total_size), 
+                        format_size(total_size), 
                         f"{duration:.2f}s",
                         entry.category,
                         filters_str
@@ -600,27 +604,14 @@ class SearchHistoryDialog(QDialog):
             )
     
     def quick_search_directory(self, directory_index):
-        """Perform quick search on frequently used directory"""
-        entries = self.history_manager.get_entries()
-        
-        # Count directory occurrences
-        dir_counts = {}
-        for entry in entries:
-            dir_counts[entry.directory] = dir_counts.get(entry.directory, 0) + 1
-        
-        # Get top directories
-        top_dirs = sorted(dir_counts.items(), key=lambda x: x[1], reverse=True)
-        
-        if directory_index < len(top_dirs):
-            directory = top_dirs[directory_index][0]
-            
-            # Set directory in main window
+        """Quickly search a popular directory"""
+        popular_dirs = self.history_manager.get_popular_directories(10)
+        if directory_index < len(popular_dirs):
+            directory, count = popular_dirs[directory_index]
             self.main_window.path_edit.setText(directory)
-            self.main_window.current_directory = directory
-            
-            # Close dialog and trigger search
-            self.accept()
-            self.main_window.start_search()
+            self.close()
+            # Trigger search in main window
+            self.main_window.search_manager.start_search()
     
     def _format_size(self, size_bytes):
         """Format file size for display"""
