@@ -299,7 +299,7 @@ class FileActions:
             else:  # Linux
                 subprocess.run(['xdg-open', file_path])
         except Exception as e:
-            QMessageBox.warning(self, "Error Opening File", str(e))
+            QMessageBox.warning(self.main_window, "Error Opening File", str(e))
 
     def open_containing_folder(self):
         """Open the folder containing the selected file"""
@@ -320,7 +320,7 @@ class FileActions:
             else:  # Linux
                 subprocess.run(['xdg-open', parent_dir])
         except Exception as e:
-            QMessageBox.warning(self, "Error Opening Folder", str(e))
+            QMessageBox.warning(self.main_window, "Error Opening Folder", str(e))
 
     def open_folder_by_path(self, file_path):
         """Open the folder containing a file (called from preview panel)"""
@@ -335,6 +335,6 @@ class FileActions:
             else:  # Linux
                 subprocess.run(['xdg-open', parent_dir])
         except Exception as e:
-            QMessageBox.warning(self, "Error Opening Folder", str(e))
+            QMessageBox.warning(self.main_window, "Error Opening Folder", str(e))
     
     
