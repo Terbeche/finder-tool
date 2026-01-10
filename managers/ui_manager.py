@@ -49,20 +49,20 @@ class UIManager:
     def refresh_category_dropdown(self):
         """Refresh the category dropdown with current categories"""
         # Save current selection
-        current_selection = self.category_combo.currentText()
+        current_selection = self.main_window.category_combo.currentText()
         
         # Clear and repopulate
-        self.category_combo.clear()
-        self.category_combo.addItem("All Files")
-        for category in self.categories:
-            self.category_combo.addItem(category.name)
+        self.main_window.category_combo.clear()
+        self.main_window.category_combo.addItem("All Files")
+        for category in self.main_window.categories:
+            self.main_window.category_combo.addItem(category.name)
         
         # Restore selection if it still exists
-        index = self.category_combo.findText(current_selection)
+        index = self.main_window.category_combo.findText(current_selection)
         if index >= 0:
-            self.category_combo.setCurrentIndex(index)
+            self.main_window.category_combo.setCurrentIndex(index)
         else:
-            self.category_combo.setCurrentIndex(0)  # Default to "All Files"
+            self.main_window.category_combo.setCurrentIndex(0)  # Default to "All Files"
 
     def toggle_preview_panel(self, checked):
         """Toggle the preview panel visibility"""

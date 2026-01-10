@@ -28,8 +28,8 @@ class DialogManager:
                 
                 # Save directly without threading
                 print("Saving settings to disk...")
-                self.main_window.config_manager.save_settings(dialog.app_settings)
-                self.main_window.config_manager.save_categories(dialog.categories)
+                self.main_window.config_manager.save_settings(self.main_window.app_settings)
+                self.main_window.config_manager.save_categories(self.main_window.categories)
                 print("Settings saved successfully")
                 
                 # Refresh UI with updated categories
@@ -39,6 +39,8 @@ class DialogManager:
 
             except Exception as e:
                 print(f"Error in settings update: {e}")
+                import traceback
+                traceback.print_exc()
 
     def open_search_history(self):
         """Open the search history dialog"""
