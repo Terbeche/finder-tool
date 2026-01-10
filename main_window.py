@@ -207,6 +207,12 @@ class MainWindow(QMainWindow):
         main_search_layout.addWidget(QLabel("Max Depth:"))
         main_search_layout.addWidget(self.max_depth)
         
+        # Include hidden files checkbox
+        self.include_hidden = QCheckBox("Hidden")
+        self.include_hidden.setToolTip("Include hidden files and folders (starting with '.')")
+        self.include_hidden.setChecked(self.app_settings.get("scan_hidden", False))
+        main_search_layout.addWidget(self.include_hidden)
+        
         # Search button
         self.search_button = QPushButton("Search Files")
         self.search_button.clicked.connect(self.search_manager.start_search)

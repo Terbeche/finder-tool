@@ -101,7 +101,8 @@ class SearchManager:
             # Create and start scanner thread
             self.main_window.scanner_thread = FileScannerThread(
                 directory, min_size, max_size, extensions, 
-                self.main_window.categories, 1, advanced_filters
+                self.main_window.categories, 1, advanced_filters,
+                scan_hidden=self.main_window.include_hidden.isChecked()
             )
             self.main_window.scanner_thread.update_progress.connect(self.update_progress)
             self.main_window.scanner_thread.file_found.connect(self.add_file_to_results)
@@ -151,7 +152,8 @@ class SearchManager:
             # Create and start scanner thread
             self.main_window.scanner_thread = FileScannerThread(
                 directory, min_size, max_size, extensions, 
-                self.main_window.categories, self.main_window.max_depth.value(), advanced_filters
+                self.main_window.categories, self.main_window.max_depth.value(), advanced_filters,
+                scan_hidden=self.main_window.include_hidden.isChecked()
             )
             self.main_window.scanner_thread.update_progress.connect(self.update_progress)
             self.main_window.scanner_thread.file_found.connect(self.add_file_to_results)

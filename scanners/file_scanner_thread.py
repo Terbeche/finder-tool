@@ -12,7 +12,7 @@ class FileScannerThread(QThread):
     scan_complete = Signal(list)  # List of FileInfo objects
     
     def __init__(self, directory, min_size=0, max_size=None, extensions=None, 
-                 categories=None, scan_depth=None, advanced_filters=None):
+                 categories=None, scan_depth=None, advanced_filters=None, scan_hidden=False):
         super().__init__()
         self.directory = directory
         self.min_size = min_size * 1024 * 1024  # Convert MB to bytes
@@ -21,6 +21,7 @@ class FileScannerThread(QThread):
         self.categories = categories or []
         self.scan_depth = scan_depth
         self.advanced_filters = advanced_filters or {}
+        self.scan_hidden = scan_hidden
         self.files = []
         self.stop_requested = False
         self.pause_requested = False
@@ -75,7 +76,13 @@ class FileScannerThread(QThread):
                 if self.stop_requested:
                     return
                 
-                # Handle pause if requested
+                # Skip symlinks to avoid infinite loops
+                if item.is_symlink():
+                    continue
+                
+                # Skip hidden files/directories unless enabled
+                if not self.scan_hidden and item.name.startswith('.'):
+                    continue
                 while self.pause_requested and not self.stop_requested:
                     if not self.paused:
                         self.paused = True
