@@ -218,7 +218,7 @@ class SettingsDialog(QDialog):
             "Light": "light",
             "Dark": "dark", 
             "Nature": "nature",
-            "Blue": "blue",
+            "Blue": "pro_blue",
             "Midnight": "midnight"
         }
         

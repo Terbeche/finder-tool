@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QMenu, QMessageBox
 from dialogs.settings_dialog import SettingsDialog
+from services.theme_manager import theme_manager
 from dialogs.search_history_dialog import SearchHistoryDialog
 from dialogs.usage_analytics_dialog import UsageAnalyticsDialog
 from dialogs.performance_dialog import PerformanceDialog
