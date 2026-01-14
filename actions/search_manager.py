@@ -128,6 +128,7 @@ class SearchManager:
             self.main_window.scanner_thread.update_progress.connect(self.update_progress)
             self.main_window.scanner_thread.file_found.connect(self.add_file_to_results)
             self.main_window.scanner_thread.scan_complete.connect(self.scan_complete)
+            self.main_window.scanner_thread.error_occurred.connect(self._handle_scan_error)
             self.main_window.scanner_thread.start()
         else:
             # Full scan: all files and subdirectories
@@ -179,6 +180,7 @@ class SearchManager:
             self.main_window.scanner_thread.update_progress.connect(self.update_progress)
             self.main_window.scanner_thread.file_found.connect(self.add_file_to_results)
             self.main_window.scanner_thread.scan_complete.connect(self.scan_complete)
+            self.main_window.scanner_thread.error_occurred.connect(self._handle_scan_error)
             self.main_window.scanner_thread.start()
         
         # Store search configuration for history
@@ -367,3 +369,8 @@ class SearchManager:
             count = int(count * (depth_factor ** 0.5))  # Sublinear extrapolation
         
         return count
+    
+    def _handle_scan_error(self, error_message):
+        """Handle errors from scanner thread"""
+        # Show error in status bar (don't spam message boxes)
+        self.main_window.statusBar().showMessage(f"⚠️ {error_message}", 5000)

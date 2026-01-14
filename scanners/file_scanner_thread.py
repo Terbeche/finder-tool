@@ -10,6 +10,7 @@ class FileScannerThread(QThread):
     update_progress = Signal(int, int)  # current, total
     file_found = Signal(object)  # FileInfo object
     scan_complete = Signal(list)  # List of FileInfo objects
+    error_occurred = Signal(str)  # Error message for UI display
     
     def __init__(self, directory, min_size=0, max_size=None, extensions=None, 
                  categories=None, scan_depth=None, advanced_filters=None, scan_hidden=False):
@@ -23,6 +24,7 @@ class FileScannerThread(QThread):
         self.advanced_filters = advanced_filters or {}
         self.scan_hidden = scan_hidden
         self.files = []
+        self.errors = []
         self.stop_requested = False
         self.pause_requested = False
         self.paused = False
@@ -141,17 +143,33 @@ class FileScannerThread(QThread):
                         self.files.append(file_info)
                         self.file_found.emit(file_info)
                     
-                    elif item.is_dir() and not item.name.startswith('.'):
-                        # Process subdirectories
+                    elif item.is_dir():
+                        # Process subdirectories (hidden check already done above)
                         self.scan_directory(item, current_depth + 1)
                 
-                except (PermissionError, FileNotFoundError) as e:
-                    # Skip files/directories we can't access
+                except PermissionError as e:
+                    # Track permission errors
+                    error_msg = f"Permission denied: {item}"
+                    self.errors.append(error_msg)
+                    self.error_occurred.emit(error_msg)
+                except FileNotFoundError as e:
+                    # File was deleted during scan
                     pass
+                except OSError as e:
+                    # Handle other OS errors (broken symlinks, etc.)
+                    error_msg = f"Error accessing {item}: {e}"
+                    self.errors.append(error_msg)
                     
-        except (PermissionError, FileNotFoundError) as e:
-            # Skip directories we can't access
+        except PermissionError as e:
+            error_msg = f"Cannot access directory: {directory}"
+            self.errors.append(error_msg)
+            self.error_occurred.emit(error_msg)
+        except FileNotFoundError:
+            # Directory was deleted during scan
             pass
+        except OSError as e:
+            error_msg = f"Error scanning directory {directory}: {e}"
+            self.errors.append(error_msg)
     
     def _check_date_filter(self, file_mtime):
         """Check if file modification time matches date filter"""
