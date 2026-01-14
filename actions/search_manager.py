@@ -35,6 +35,27 @@ class SearchManager:
             QMessageBox.warning(self.main_window, "Invalid Directory", "The specified directory does not exist.")
             return
         
+        # Estimate file count for large directories
+        scan_hidden = self.main_window.include_hidden.isChecked()
+        max_depth = self.main_window.max_depth.value()
+        estimated_count = self._estimate_file_count(directory, max_depth, scan_hidden)
+        
+        if estimated_count > 50000:
+            # Warn user about large scan
+            proceed = QMessageBox.question(
+                self.main_window, "Large Directory Warning",
+                f"This directory contains approximately {estimated_count:,} items.\n\n"
+                f"Scanning may take a long time.\n\n"
+                f"Options:\n"
+                f"• Yes - Proceed with scan\n"
+                f"• No - Cancel and adjust settings\n\n"
+                f"Tip: Reduce 'Max Depth' or deselect 'Hidden' to scan faster.",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if proceed != QMessageBox.Yes:
+                return
+        
         # Check cache first
         cached_result = self.main_window.performance_optimizer.get_cached_scan(directory)
         if cached_result:
@@ -300,3 +321,49 @@ class SearchManager:
         self.main_window.pause_button.setText("Pause")
         self.main_window.progress_bar.setVisible(False)
         self.main_window.statusBar().showMessage("Scan stopped by user.")
+    
+    def _estimate_file_count(self, directory, max_depth, scan_hidden):
+        """Quickly estimate file count before scanning (limited depth)"""
+        count = 0
+        sample_depth = min(max_depth, 3)  # Only sample first 3 levels
+        
+        try:
+            for root, dirs, files in os.walk(directory):
+                # Calculate current depth
+                rel_path = os.path.relpath(root, directory)
+                depth = 0 if rel_path == '.' else rel_path.count(os.sep) + 1
+                
+                # Check if we're in a hidden directory (skip entire subtree)
+                if not scan_hidden and depth > 0:
+                    # Check if any parent directory is hidden
+                    parts = rel_path.split(os.sep)
+                    if any(part.startswith('.') for part in parts):
+                        dirs[:] = []  # Don't descend further
+                        continue
+                
+                if depth >= sample_depth:
+                    dirs[:] = []  # Don't go deeper
+                    continue
+                
+                # Filter hidden items from counting AND from descent
+                if not scan_hidden:
+                    # Filter out hidden directories so os.walk won't enter them
+                    original_dir_count = len(dirs)
+                    dirs[:] = [d for d in dirs if not d.startswith('.')]
+                    # Filter hidden files
+                    files = [f for f in files if not f.startswith('.')]
+                
+                count += len(files) + len(dirs)
+                
+                # Stop early if we've seen enough
+                if count > 100000:
+                    break
+        except (PermissionError, OSError):
+            pass
+        
+        # Extrapolate estimate based on depth ratio
+        if sample_depth < max_depth and count > 1000:
+            depth_factor = max_depth / sample_depth
+            count = int(count * (depth_factor ** 0.5))  # Sublinear extrapolation
+        
+        return count
